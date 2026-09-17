@@ -1376,27 +1376,28 @@
       updateSelectedCompanyStats();
     }
 
-    // OPEN CELL EDIT MODAL
+    // OPEN CELL EDIT MODAL (PROTECTED BY PASS)
     function openCellModal(taskIdx, monthIdx) {
       if (!currentSelectedCode) return;
-      
-      activeCellModalData = { taskIdx, monthIdx };
-      const taskName = closingTasks[taskIdx];
-      const monthName = MONTH_NAMES[monthIdx];
-      
-      document.getElementById("modalTaskName").innerText = `${taskIdx + 1}. ${taskName}`;
-      document.getElementById("modalMonthName").innerText = `Mês: ${monthName} de ${currentYear}`;
+      requireAuth(() => {
+        activeCellModalData = { taskIdx, monthIdx };
+        const taskName = closingTasks[taskIdx];
+        const monthName = MONTH_NAMES[monthIdx];
+        
+        document.getElementById("modalTaskName").innerText = `${taskIdx + 1}. ${taskName}`;
+        document.getElementById("modalMonthName").innerText = `Mês: ${monthName} de ${currentYear}`;
 
-      const yearData = getCompanyYearData(currentSelectedCode, currentYear);
-      const cellData = (yearData.tasks[taskIdx] && yearData.tasks[taskIdx][monthIdx]) || { status: 'DASH', date: '' };
+        const yearData = getCompanyYearData(currentSelectedCode, currentYear);
+        const cellData = (yearData.tasks[taskIdx] && yearData.tasks[taskIdx][monthIdx]) || { status: 'DASH', date: '' };
 
-      document.getElementById("modalCompletionDate").value = cellData.date || getCurrentShortDate();
+        document.getElementById("modalCompletionDate").value = cellData.date || getCurrentShortDate();
 
-      document.getElementById("cellModal").style.display = "flex";
+        document.getElementById("cellModal").style.display = "flex";
+      });
     }
 
     function closeCellModal() {
-      document.getElementById("cellModal").classList.add("hidden");
+      document.getElementById("cellModal").style.display = "none";
       activeCellModalData = null;
     }
 

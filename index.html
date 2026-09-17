@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rotina de Fechamento Contábil | RBM Contábil</title>
+  <!-- Google Fonts & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f4f9',
+              100: '#d9e2ec',
+              500: '#1e3e62',
+              600: '#0f2c59',
+              700: '#0a1e3f',
+              800: '#061329',
+              accent: '#2563eb'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Estilos personalizados para tabela de rotina contábil */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    .grid-cell {
+      transition: all 0.15s ease-in-out;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grid-cell:hover {
+      filter: brightness(0.95);
+      transform: scale(1.03);
+    }
+    .status-dash {
+      background-color: #f8fafc;
+      color: #94a3b8;
+      border: 1px solid #e2e8f0;
+      font-weight: 500;
+    }
+    .status-pendente {
+      background-color: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+      font-weight: 700;
+    }
+    .status-andamento {
+      background-color: #fefce8;
+      color: #b45309;
+      border: 1px solid #fef08a;
+      font-weight: 700;
+    }
+    .status-realizado {
+      background-color: #f0fdf4;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+      font-weight: 700;
+    }
+    .status-cinza {
+      background-color: #e2e8f0;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+      font-weight: 700;
+    }
+    
+    /* Print Styles */
+    @media print {
+      .no-print { display: none !important; }
+      .print-full { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+      body { background: white !important; color: black !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- TOP HEADER BAR -->
+  <header class="bg-brand-600 text-white shadow-md no-print border-b border-brand-700 sticky top-0 z-30">
+    <div class="max-w-[1700px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- LOGO / BRANDING -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow">
+          <i class="fa-solid fa-calculator"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight leading-tight flex items-center gap-2">
+            Rotina de Fechamento Contábil
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/30 text-blue-200 border border-blue-400/30">RBM Contábil</span>
+          </h1>
+          <p class="text-xs text-slate-300">Gestão de Fechamento Contábil do Dia a Dia do Escritório</p>
+        </div>
+      </div>
+
+      <!-- SEARCH BAR DIRECT LOOKUP BY CODE OR NAME -->
+      <div class="flex-1 max-w-md relative">
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </span>
+          <input type="text" id="topSearchInput" placeholder="Digite o CÓDIGO ou Nome da empresa..." 
+            class="w-full pl-9 pr-24 py-2 bg-brand-700/80 text-white placeholder-slate-300 text-sm rounded-lg border border-brand-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-brand-800 transition">
+          <button id="btnQuickLookup" class="absolute right-1 top-1 bottom-1 px-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-md transition flex items-center gap-1">
+            <span>Ir</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+        <!-- Quick search suggestions dropdown -->
+        <div id="searchDropdown" class="hidden absolute top-full left-0 right-0 mt-1 bg-white text-slate-800 rounded-lg shadow-xl border border-slate-200 max-h-60 overflow-y-auto z-50"></div>
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="flex items-center space-x-2">
+        <button id="btnNewCompany" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1.5">
+          <i class="fa-solid fa-plus"></i>
+          <span>Nova Empresa</span>
+        </button>
+        <button id="btnEditTasksModal" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1.5" title="Editar Nomes das Tarefas">
+          <i class="fa-solid fa-list-check"></i>
+          <span class="hidden sm:inline">Editar Tarefas</span>
+        </button>
+        <button id="btnExportData" class="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow border border-amber-400 transition flex items-center gap-1.5" title="Baixar Backup de Segurança JSON">
+          <i class="fa-solid fa-download"></i>
+          <span>Baixar Backup</span>
+        </button>
+        <button id="btnImportData" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg border border-slate-500 transition flex items-center gap-1.5" title="Importar Backup JSON">
+          <i class="fa-solid fa-upload"></i>
+          <span class="hidden sm:inline">Importar</span>
+        </button>
+        <input type="file" id="importFileInput" class="hidden" accept=".json">
+        <button id="btnOpenSecurity" class="px-3 py-2 bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold rounded-lg border border-teal-500 transition flex items-center gap-1.5" title="Guia de Segurança dos Dados">
+          <i class="fa-solid fa-shield-halved text-emerald-300"></i>
+          <span class="hidden sm:inline">Segurança</span>
+        </button>
+        <button id="btnLockApp" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg border border-slate-500 transition flex items-center gap-1.5" title="Bloquear Acesso">
+          <i class="fa-solid fa-lock text-amber-400"></i>
+          <span class="hidden sm:inline">Bloquear</span>
+        </button>
+        <button onclick="window.print()" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg border border-slate-500 transition flex items-center gap-1.5" title="Imprimir">
+          <i class="fa-solid fa-print"></i>
+          <span class="hidden sm:inline">Imprimir</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- DASHBOARD STATS BAR - FOCUSED ON SELECTED COMPANY -->
+  <section class="bg-white border-b border-slate-200 shadow-sm no-print">
+    <div class="max-w-[1700px] mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-4 text-xs">
+      <div class="flex items-center space-x-6">
+        <div class="flex items-center space-x-2">
+          <span class="text-slate-500">Total Empresas:</span>
+          <span id="statTotalCompanies" class="font-bold text-slate-800 text-sm bg-slate-100 px-2 py-0.5 rounded">0</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-slate-500">Filtradas:</span>
+          <span id="statFilteredCompanies" class="font-bold text-blue-600 text-sm bg-blue-50 px-2 py-0.5 rounded">0</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-slate-500">Mês de Análise:</span>
+          <select id="statMonthSelect" class="font-semibold text-slate-700 border border-slate-300 rounded px-2 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+            <option value="0">Janeiro</option>
+            <option value="1">Fevereiro</option>
+            <option value="2">Março</option>
+            <option value="3">Abril</option>
+            <option value="4">Maio</option>
+            <option value="5">Junho</option>
+            <option value="6">Julho</option>
+            <option value="7">Agosto</option>
+            <option value="8">Setembro</option>
+            <option value="9">Outubro</option>
+            <option value="10">Novembro</option>
+            <option value="11">Dezembro</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- STATUS SUMMARY FOR THE SELECTED COMPANY ONLY -->
+      <div class="flex items-center space-x-4 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+        <div class="flex items-center space-x-1 font-semibold text-slate-700">
+          <i class="fa-solid fa-chart-pie text-brand-600 mr-1"></i>
+          <span>Progresso da Empresa Selecionada:</span>
+        </div>
+
+        <div class="flex items-center space-x-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <span class="text-slate-600">Concluídas:</span>
+          <span id="statDoneCount" class="font-bold text-emerald-700">0/21</span>
+        </div>
+        <div class="flex items-center space-x-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+          <span class="text-slate-600">Andamento:</span>
+          <span id="statAndamentoCount" class="font-bold text-amber-600">0/21</span>
+        </div>
+        <div class="flex items-center space-x-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+          <span class="text-slate-600">Pendentes:</span>
+          <span id="statPendingCount" class="font-bold text-red-600">0/21</span>
+        </div>
+
+        <div class="flex items-center space-x-2 pl-2 border-l border-slate-300">
+          <div class="w-24 bg-slate-200 rounded-full h-2.5 overflow-hidden">
+            <div id="statProgressBar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <span id="statProgressText" class="font-bold text-slate-800">0%</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN APP CONTAINER (SPLIT VIEW) -->
+  <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-5">
+    
+    <!-- LEFT SIDEBAR: COMPANY LIST & FILTERS -->
+    <aside class="lg:col-span-4 xl:col-span-3 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-[calc(100vh-160px)] sticky top-24 no-print">
+      
+      <!-- SIDEBAR FILTERS HEADER -->
+      <div class="p-3.5 bg-slate-50 border-b border-slate-200 space-y-2.5">
+        
+        <div class="flex items-center justify-between">
+          <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-building text-brand-600"></i>
+            Base de Empresas
+          </h2>
+          <span id="companyCountBadge" class="text-xs bg-slate-200 text-slate-700 font-semibold px-2 py-0.5 rounded-full">0</span>
+        </div>
+
+        <!-- SEARCH FILTER -->
+        <div class="relative">
+          <input type="text" id="sideSearchInput" placeholder="Buscar por código ou nome..." 
+            class="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 text-xs rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500">
+          <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+        </div>
+
+        <!-- DROPDOWN FILTERS (COLABORADOR, TIPO, ENQUADRAMENTO TRIBUTÁRIO & SITUAÇÃO) -->
+        <div class="grid grid-cols-2 gap-1.5">
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Colaborador</label>
+            <select id="filterColaborador" class="w-full text-xs border border-slate-300 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <option value="">Todos</option>
+              <option value="Viviane">Viviane</option>
+              <option value="Lilian">Lilian</option>
+              <option value="Luziete">Luziete</option>
+              <option value="Sem Colaborador">[Sem Resp.]</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Tipo</label>
+            <select id="filterTipoEmpresa" class="w-full text-xs border border-slate-300 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <option value="">Todos</option>
+              <option value="Abertura">Abertura</option>
+              <option value="Migrada">Migrada</option>
+              <option value="Não informado">Não informado</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Enquad.</label>
+            <select id="filterEnquadramento" class="w-full text-xs border border-slate-300 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <option value="">Todos</option>
+              <option value="Simples Nacional Puro">SN Puro</option>
+              <option value="Simples Nacional Híbrido">SN Híbrido</option>
+              <option value="Lucro Presumido">Lucro Presumido</option>
+              <option value="Lucro Real">Lucro Real</option>
+              <option value="MEI">MEI</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Situação</label>
+            <select id="filterStatusSaida" class="w-full text-xs border border-slate-300 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold">
+              <option value="">Todas</option>
+              <option value="Ativas">Ativas</option>
+              <option value="Saidas">Saíram da RBM (Cinza)</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- COMPANY SCROLLABLE LIST -->
+      <div id="companyList" class="flex-1 overflow-y-auto divide-y divide-slate-100">
+        <!-- Javascript populated items -->
+      </div>
+
+    </aside>
+
+    <!-- RIGHT MAIN PANEL: COMPANY CLOSING ROUTINE DETAIL -->
+    <section class="lg:col-span-8 xl:col-span-9 flex flex-col gap-4 print-full">
+      
+      <!-- COMPANY HEADER & CONTROLS -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+        
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-3">
+          
+          <div class="flex items-center space-x-3">
+            <span id="displayCompanyCode" class="px-3 py-1 bg-brand-600 text-white font-extrabold text-sm rounded-lg shadow-sm">
+              CÓD: --
+            </span>
+            <div>
+              <h2 id="displayCompanyName" class="text-xl font-bold text-slate-800 leading-tight">
+                Selecione uma Empresa
+              </h2>
+              <div class="flex items-center gap-2 mt-0.5 text-xs text-slate-500 flex-wrap">
+                <span id="displayTaxBadge" class="font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200">
+                  ENQUAD: --
+                </span>
+                <span id="displayTipoBadge" class="font-semibold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded border border-indigo-200">
+                  TIPO: --
+                </span>
+                <span>•</span>
+                <span>Responsável: <strong id="displayColaboradorText" class="text-slate-800 font-bold">--</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- EDIT / DELETE / YEAR CONTROLS -->
+          <div class="flex items-center space-x-3 no-print">
+            <div class="flex items-center space-x-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+              <label class="text-xs font-semibold text-slate-600">Exercício:</label>
+              <input type="number" id="inputYear" value="2026" min="2020" max="2035" 
+                class="w-16 text-xs font-bold text-center bg-white border border-slate-300 rounded py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+
+            <button id="btnEditSelectedCompany" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 transition flex items-center gap-1.5">
+              <i class="fa-solid fa-pen-to-square text-blue-600"></i>
+              <span>Editar Empresa</span>
+            </button>
+            <button id="btnDeleteSelectedCompany" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold rounded-lg border border-rose-200 transition flex items-center gap-1.5">
+              <i class="fa-solid fa-trash-can"></i>
+              <span class="hidden sm:inline">Excluir</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- EDITABLE METADATA ROW -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 text-xs">
+          
+          <div class="bg-blue-50/60 p-2 rounded-lg border border-blue-100">
+            <label class="block font-bold text-blue-900 mb-1 flex items-center justify-between">
+              <span>Colaborador</span>
+              <i class="fa-solid fa-user-gear text-blue-600"></i>
+            </label>
+            <select id="inputCompanyColaborador" class="w-full border border-blue-300 rounded-md p-1.5 bg-white text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">[Em branco]</option>
+              <option value="Viviane">Viviane</option>
+              <option value="Lilian">Lilian</option>
+              <option value="Luziete">Luziete</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-500 mb-1">Tipo de Empresa</label>
+            <select id="inputCompanyTipo" class="w-full border border-slate-300 rounded-md p-1.5 bg-white text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <option value="Não informado">Não informado</option>
+              <option value="Abertura">Abertura (Aberta na RBM)</option>
+              <option value="Migrada">Empresa Migrada</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-500 mb-1">DT ENTRADA RBM</label>
+            <input type="text" id="inputDtEntradaRbm" placeholder="Ex: 15/01/2026" 
+              class="w-full border border-slate-300 rounded-md p-1.5 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-500 mb-1">Enquadramento</label>
+            <select id="inputCompanyTax" class="w-full border border-slate-300 rounded-md p-1.5 bg-white text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <option value="Simples Nacional Puro">Simples Nacional Puro</option>
+              <option value="Simples Nacional Híbrido">Simples Nacional Híbrido</option>
+              <option value="Lucro Presumido">Lucro Presumido</option>
+              <option value="Lucro Real">Lucro Real</option>
+              <option value="MEI">MEI - Microempreendedor</option>
+            </select>
+          </div>
+
+          <div class="bg-slate-100 p-2 rounded-lg border border-slate-200">
+            <label class="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+              <span>Mês de Saída RBM</span>
+              <i class="fa-solid fa-door-open text-slate-500"></i>
+            </label>
+            <select id="inputCompanyMesSaida" class="w-full border border-slate-300 rounded-md p-1.5 bg-white text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-slate-500">
+              <option value="-1">Empresa Ativa (Sem Saída)</option>
+              <option value="0">Saída a partir de Janeiro</option>
+              <option value="1">Saída a partir de Fevereiro</option>
+              <option value="2">Saída a partir de Março</option>
+              <option value="3">Saída a partir de Abril</option>
+              <option value="4">Saída a partir de Maio</option>
+              <option value="5">Saída a partir de Junho</option>
+              <option value="6">Saída a partir de Julho</option>
+              <option value="7">Saída a partir de Agosto</option>
+              <option value="8">Saída a partir de Setembro</option>
+              <option value="9">Saída a partir de Outubro</option>
+              <option value="10">Saída a partir de Novembro</option>
+              <option value="11">Saída a partir de Dezembro</option>
+            </select>
+          </div>
+
+        </div>
+
+        <!-- OBSERVATIONS FIELD -->
+        <div class="mt-3 pt-3 border-t border-slate-100">
+          <label class="block text-xs font-semibold text-slate-600 mb-1 flex items-center justify-between">
+            <span><i class="fa-solid fa-comment-dots text-amber-500 mr-1"></i> Campo de Observações da Empresa:</span>
+            <span class="text-[10px] text-slate-400 font-normal">Editável • Salvo automaticamente</span>
+          </label>
+          <textarea id="inputObservations" rows="2" placeholder="Digite observações importantes, particularidades fiscais, histórico ou pendências da empresa..."
+            class="w-full p-2 text-xs border border-slate-300 rounded-lg bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-y"></textarea>
+        </div>
+
+      </div>
+
+      <!-- CLOSING ROUTINE MATRIX TABLE -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+        
+        <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center space-x-2">
+            <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wide flex items-center gap-1.5">
+              <i class="fa-solid fa-list-check text-emerald-600"></i>
+              Checklist de Fechamento Contábil
+            </h3>
+          </div>
+          
+          <!-- LEGEND & HELPER -->
+          <div class="flex items-center space-x-3 text-[11px] no-print">
+            <span class="flex items-center gap-1">
+              <span class="w-3 h-3 rounded bg-slate-100 border border-slate-300 text-[10px] text-center font-bold">—</span>
+              <span class="text-slate-500">Tracinho (Sem ação)</span>
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="w-3 h-3 rounded bg-red-100 border border-red-300"></span>
+              <span class="text-red-700 font-bold">Pendente (Vermelho)</span>
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="w-3 h-3 rounded bg-amber-100 border border-amber-300"></span>
+              <span class="text-amber-800 font-bold">Em Andamento (Amarelo)</span>
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="w-3 h-3 rounded bg-emerald-100 border border-emerald-300"></span>
+              <span class="text-emerald-700 font-bold">Concluído até _/_ (Verde)</span>
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="w-3 h-3 rounded bg-slate-200 border border-slate-300"></span>
+              <span class="text-slate-700 font-bold">⚪ Inativa / Saída (Cinza)</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- TABLE GRID -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse min-w-[1000px]">
+            <thead>
+              <tr class="bg-brand-600 text-white text-[11px] uppercase tracking-wider font-semibold border-b border-brand-700">
+                <th class="py-2.5 px-3 min-w-[280px] w-[350px] sticky left-0 bg-brand-600 z-10 shadow-r">Descrição das Tarefas / Etapas</th>
+                <th class="py-2.5 px-1 text-center w-20">Jan</th>
+                <th class="py-2.5 px-1 text-center w-20">Fev</th>
+                <th class="py-2.5 px-1 text-center w-20">Mar</th>
+                <th class="py-2.5 px-1 text-center w-20">Abr</th>
+                <th class="py-2.5 px-1 text-center w-20">Mai</th>
+                <th class="py-2.5 px-1 text-center w-20">Jun</th>
+                <th class="py-2.5 px-1 text-center w-20">Jul</th>
+                <th class="py-2.5 px-1 text-center w-20">Ago</th>
+                <th class="py-2.5 px-1 text-center w-20">Set</th>
+                <th class="py-2.5 px-1 text-center w-20">Out</th>
+                <th class="py-2.5 px-1 text-center w-20">Nov</th>
+                <th class="py-2.5 px-1 text-center w-20">Dez</th>
+              </tr>
+            </thead>
+            <tbody id="routineTableBody" class="divide-y divide-slate-200 text-xs">
+              <!-- Dynamically built by JS -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- CELL EDIT POPUP MODAL -->
+  <div id="cellModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-150">
+      
+      <div class="bg-brand-600 text-white p-3.5 flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <i class="fa-solid fa-pen"></i>
+          Atualizar Status da Etapa
+        </h3>
+        <button id="btnCloseCellModal" class="text-slate-300 hover:text-white text-lg">&times;</button>
+      </div>
+
+      <div class="p-4 space-y-3">
+        <div>
+          <p id="modalTaskName" class="font-bold text-slate-800 text-xs mb-1"></p>
+          <p id="modalMonthName" class="text-xs text-slate-500 font-medium"></p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-xs font-semibold text-slate-700">Escolha a Situação:</label>
+          
+          <!-- OPTION 1: TRACINHO (DASH / BLANK) -->
+          <button id="btnSetDash" class="w-full text-left px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-xs flex items-center justify-between transition">
+            <span class="flex items-center gap-2">
+              <span class="font-mono text-base font-bold text-slate-400">—</span>
+              <span>TRACINHO (Sem nada / Sem ação)</span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+
+          <!-- OPTION 2: PENDENTE (RED) -->
+          <button id="btnSetPendente" class="w-full text-left px-3 py-2 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs flex items-center justify-between transition">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-circle-exclamation text-red-600"></i>
+              <span>PENDENTE (Vermelho)</span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+
+          <!-- OPTION 3: EM ANDAMENTO / REALIZANDO (YELLOW) -->
+          <button id="btnSetAndamento" class="w-full text-left px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-between transition">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-spinner text-amber-600"></i>
+              <span>EM ANDAMENTO / REALIZANDO (Amarelo)</span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+
+          <!-- OPTION 4: CONCLUIDO / REALIZADO (GREEN) -->
+          <button id="btnSetRealizado" class="w-full text-left px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-between transition">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-circle-check text-emerald-600"></i>
+              <span>CONCLUÍDO / REALIZADO (Verde)</span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+
+          <!-- OPTION 5: INATIVA / SAIU DA RBM (GREY) -->
+          <button id="btnSetCinza" class="w-full text-left px-3 py-2 rounded-lg border border-slate-300 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs flex items-center justify-between transition">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-circle-minus text-slate-500"></i>
+              <span>INATIVA / SAIU DA RBM (Cinza)</span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+
+          <!-- DATE INPUT FOR REALIZADO -->
+          <div id="dateInputContainer" class="pl-4 pt-1 space-y-1">
+            <label class="block text-[11px] font-semibold text-slate-600">Data da Conclusão (DD/MM):</label>
+            <input type="text" id="modalCompletionDate" placeholder="Ex: 15/02" 
+              class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 p-3 border-t border-slate-200 flex justify-end gap-2">
+        <button id="btnCancelCellModal" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded">Cancelar</button>
+        <button id="btnSaveCellModal" class="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 rounded shadow">Salvar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- COMPANY ADD / EDIT MODAL -->
+  <div id="companyModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+      
+      <div class="bg-brand-600 text-white p-4 flex items-center justify-between">
+        <h3 id="companyModalTitle" class="font-bold text-sm flex items-center gap-2">
+          <i class="fa-solid fa-building-circle-check"></i>
+          Cadastrar Nova Empresa
+        </h3>
+        <button id="btnCloseCompanyModal" class="text-slate-300 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <form id="companyForm" class="p-4 space-y-3 text-xs">
+        <input type="hidden" id="modalCompanyOriginalCode">
+        
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Código da Empresa *</label>
+          <input type="number" id="modalInputCode" required placeholder="Ex: 1500" 
+            class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Nome da Empresa *</label>
+          <input type="text" id="modalInputName" required placeholder="Ex: RBM Serviços Ltda" 
+            class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Enquadramento Tributário *</label>
+            <select id="modalInputTax" required class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none font-semibold">
+              <option value="Simples Nacional Puro">Simples Nacional Puro</option>
+              <option value="Simples Nacional Híbrido">Simples Nacional Híbrido</option>
+              <option value="Lucro Presumido">Lucro Presumido</option>
+              <option value="Lucro Real">Lucro Real</option>
+              <option value="MEI">MEI - Microempreendedor</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Tipo de Empresa</label>
+            <select id="modalInputTipo" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none font-semibold">
+              <option value="Não informado">Não informado</option>
+              <option value="Abertura">Abertura (Aberta na RBM)</option>
+              <option value="Migrada">Empresa Migrada</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Colaborador Responsável</label>
+          <select id="modalInputColaborador" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none font-semibold">
+            <option value="">[Em branco / Selecionar quem vai fazer]</option>
+            <option value="Viviane">Viviane</option>
+            <option value="Lilian">Lilian</option>
+            <option value="Luziete">Luziete</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">DT ENTRADA RBM</label>
+          <input type="text" id="modalInputDtEntradaRbm" placeholder="Ex: 01/01/2026" 
+            class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Mês de Saída da RBM (Se a empresa saiu)</label>
+          <select id="modalInputMesSaida" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-500 focus:outline-none font-semibold">
+            <option value="-1">Empresa Ativa (Sem Saída)</option>
+            <option value="0">Saída a partir de Janeiro</option>
+            <option value="1">Saída a partir de Fevereiro</option>
+            <option value="2">Saída a partir de Março</option>
+            <option value="3">Saída a partir de Abril</option>
+            <option value="4">Saída a partir de Maio</option>
+            <option value="5">Saída a partir de Junho</option>
+            <option value="6">Saída a partir de Julho</option>
+            <option value="7">Saída a partir de Agosto</option>
+            <option value="8">Saída a partir de Setembro</option>
+            <option value="9">Saída a partir de Outubro</option>
+            <option value="10">Saída a partir de Novembro</option>
+            <option value="11">Saída a partir de Dezembro</option>
+          </select>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-200">
+          <button type="button" id="btnCancelCompanyModal" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+          <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shadow">Salvar Empresa</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- EDIT TASKS MODAL -->
+  <div id="tasksModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <div class="bg-indigo-700 text-white p-4 flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <i class="fa-solid fa-pen-to-square"></i>
+          Editar Lista de Tarefas / Etapas da Rotina
+        </h3>
+        <button id="btnCloseTasksModal" class="text-slate-300 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <div class="p-4 flex-1 overflow-y-auto space-y-2 text-xs" id="tasksModalList">
+        <!-- Dynamically populated inputs for each task -->
+      </div>
+
+      <div class="bg-slate-50 p-3 border-t border-slate-200 flex justify-between items-center">
+        <button id="btnResetTasks" class="px-3 py-1.5 text-xs text-rose-600 font-semibold hover:bg-rose-50 rounded">Restaurar Padrões</button>
+        <div class="flex gap-2">
+          <button id="btnCancelTasksModal" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+          <button id="btnSaveTasksModal" class="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow">Salvar Tarefas</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SECURITY & BACKUP GUIDE MODAL -->
+  <div id="securityModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <div class="bg-emerald-700 text-white p-4 flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved"></i>
+          Central de Segurança e Proteção dos Dados RBM
+        </h3>
+        <button id="btnCloseSecurityModal" class="text-slate-300 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <div class="p-5 flex-1 overflow-y-auto space-y-4 text-xs text-slate-700 leading-relaxed">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start gap-3">
+          <i class="fa-solid fa-cloud-arrow-up text-emerald-600 text-xl mt-0.5"></i>
+          <div>
+            <h4 class="font-bold text-emerald-900 text-xs">Sincronização Ativa via Microsoft OneDrive</h4>
+            <p class="text-[11px] text-emerald-800 mt-0.5">
+              Esta ferramenta está salva dentro da sua pasta sincronizada do OneDrive. O histórico de empresas fica gravado com segurança e você não corre o risco de perder os dados!
+            </p>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-1">
+            <i class="fa-solid fa-life-ring text-blue-600"></i>
+            Como Garantir 100% de Controle do Seu Histórico:
+          </h4>
+
+          <div class="space-y-2">
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <strong class="text-blue-800 font-bold block mb-1">1. Salve um Backup com 1 Clique:</strong>
+              Clique no botão amarelo <span class="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded">💾 Baixar Backup</span> no topo da tela. Um arquivo de cópia completo será baixado para o seu computador.
+            </div>
+
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <strong class="text-blue-800 font-bold block mb-1">2. Como Restaurar se Mudar de Computador:</strong>
+              Se trocar de computador ou se o navegador for limpo, basta clicar no botão <span class="bg-slate-200 text-slate-800 font-bold px-1.5 py-0.5 rounded">📤 Importar</span> e selecionar o seu arquivo de backup. Tudo volta ao normal em 2 segundos!
+            </div>
+
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <strong class="text-blue-800 font-bold block mb-1">3. Cópia Salva no OneDrive:</strong>
+              Foi criada uma cópia explicativa direta na sua Área de Trabalho chamada <code class="bg-white border px-1 py-0.5 rounded text-slate-800 font-mono">COMO_RECUPERAR_DADOS_RBM.txt</code>.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="bg-slate-50 p-3 border-t border-slate-200 flex justify-end gap-2">
+        <button id="btnDownloadBackupModal" class="px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-500 rounded-lg shadow flex items-center gap-1.5">
+          <i class="fa-solid fa-download"></i>
+          <span>Baixar Cópia de Segurança Agora</span>
+        </button>
+        <button id="btnOKSecurityModal" class="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 rounded-lg">Entendi</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PASSWORD LOCK OVERLAY -->
+  <div id="passwordLockOverlay" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 text-center space-y-5">
+      
+      <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
+        <i class="fa-solid fa-lock text-blue-600"></i>
+      </div>
+
+      <div>
+        <h2 class="text-xl font-extrabold text-slate-800">Acesso Protegido</h2>
+        <p class="text-xs text-slate-500 mt-1">Digite a senha do escritório para acessar e salvar a Rotina de Fechamento Contábil RBM.</p>
+      </div>
+
+      <form id="passwordForm" class="space-y-3 text-left">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Senha de Acesso RBM *</label>
+          <div class="relative">
+            <input type="password" id="inputAuthPassword" required placeholder="Digite a senha..." 
+              class="w-full pl-3 pr-10 py-2.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none font-semibold text-slate-800">
+            <button type="button" id="btnTogglePasswordVisibility" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600">
+              <i class="fa-solid fa-eye" id="eyeIcon"></i>
+            </button>
+          </div>
+          <p id="passwordErrorMsg" class="hidden text-xs text-rose-600 font-bold mt-1.5 flex items-center gap-1">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>Senha incorreta! Verifique e tente novamente.</span>
+          </p>
+        </div>
+
+        <button type="submit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm rounded-lg shadow-md transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-key"></i>
+          <span>Entrar no Fechamento</span>
+        </button>
+      </form>
+
+      <div class="text-[11px] text-slate-400 border-t border-slate-100 pt-3 flex items-center justify-center gap-1">
+        <i class="fa-solid fa-shield-halved text-blue-500"></i>
+        <span>Protegido por senha • RBM Contábil</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT LOGIC -->
+  <script>
+    // INFORMAL OFFICE-STYLE DESCRIPTIONS FOR THE 21 ACCOUNTING CLOSING TASKS
+    const DEFAULT_CLOSING_TASKS = [
+      "Lançar Saldos Iniciais (Balanço anterior / Capital de abertura)",
+      "Importar notas e arquivos fiscais",
+      "Importar guias e valores dos impostos",
+      "Importar folha de pagamento e encargos",
+      "Conferir notas fiscais e faturamento",
+      "Conferir apuração dos impostos (Simples, ICMS, IPI, PIS/Cofins, ISS)",
+      "Conferir retenções na fonte (IRRF, CSRF, ISS retido)",
+      "Conferir resumos da folha de pagamento",
+      "Conferir encargos trabalhistas (INSS, FGTS, IRRF, Sindicato)",
+      "Rodar ou lançar depreciação do ativo",
+      "Lançar extratos bancários",
+      "Bater e conciliar saldo do extrato bancário",
+      "Conciliar rendimentos e aplicações financeiras",
+      "Conciliar pagamentos de impostos e encargos",
+      "Conciliar pagamentos de salários, férias, rescisão e 13º",
+      "Conciliar contas de clientes e fornecedores",
+      "Revisar e conciliar a natureza das contas do balancete",
+      "Fazer lançamentos CVM / ajustes de encerramento",
+      "Fazer o zeramento / encerramento do exercício",
+      "Gerar relatórios finais (Balancete, Balanço e DRE)",
+      "Dar baixa na tarefa lá no ONVIO"
+    ];
+
+    let closingTasks = [...DEFAULT_CLOSING_TASKS];
+
+    const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+    // MAPPER FOR INITIAL SN / LP ENQUADRAMENTO TO NEW REGIME NAMES
+    function normalizeTaxName(tax) {
+      if (!tax) return "Simples Nacional Puro";
+      if (tax === "SN" || tax === "Simples Nacional") return "Simples Nacional Puro";
+      if (tax === "LP") return "Lucro Presumido";
+      if (tax === "LR") return "Lucro Real";
+      return tax;
+    }
+
+    // INITIAL BASE OF ~160 COMPANIES FROM THE PROVIDED IMAGES
+    // ALL INITIAL PRE-EXISTING COMPANIES HAVE tipo INITIALIZED TO "Não informado" AS REQUESTED
+    const INITIAL_COMPANIES = [
+      { code: "1", name: "RBM Contabil", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "10", name: "Bar Pioneira", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "11", name: "Academia Estilo", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "30", name: "Geci Alves", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "44", name: "Trans Planalto", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "134", name: "Auto Mec Giba", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "272", name: "HGA Corretora", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "286", name: "Cemed", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "303", name: "Dover's", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "319", name: "J.M.M. Prod Limpeza", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "364", name: "Isabel Cristina Naddeo", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "395", name: "Comercial Mac Jordan", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "416", name: "Lanchonete do Fincos", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "438", name: "Zelar", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "496", name: "AS Rocha", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "532", name: "Vieira e Soares", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "553", name: "AT Shimamoto", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "573", name: "Silpe", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "586", name: "SRM Empório", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "621", name: "Biondo", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "629", name: "HMJ", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "638", name: "Garba", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "659", name: "Natureza Animal", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "665", name: "Danielle Ribeiro", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "670", name: "Adami Serviços", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "683", name: "Braggio e Molina", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "684", name: "Maf", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "707", name: "Dipapel", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "751", name: "JBJ Bomboniere", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "756", name: "Dyan", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "769", name: "TAM", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "799", name: "Centra Sport Bar", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "831", name: "Eder", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "836", name: "Hiper Boi Empório", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "843", name: "Cesonia", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "854", name: "SKM", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "865", name: "Auto S Nova Paulinho", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "889", name: "Vargas Clin Med", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "916", name: "Seta Telecom", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "940", name: "Carlimp", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "958", name: "Auto S Trans Paulinho", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "968", name: "Antolima", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "977", name: "4Kids", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1003", name: "Terada e Terada", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1017", name: "Betaz", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1020", name: "Alvtec", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1021", name: "AMtec Filial", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1039", name: "Sob Port", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1045", name: "Droide", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1050", name: "Avic Rec Passaros", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1054", name: "Sincronismo", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1055", name: "Eden", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1059", name: "Riwapac", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1064", name: "Bomfa", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1068", name: "Dry Master", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1082", name: "Profusão", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1113", name: "Vera Lucia Calcados", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1122", name: "Tudo Prata", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1135", name: "SWR Manutenção", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1136", name: "Cromação", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1138", name: "JJE Pescados", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1144", name: "Superm Horti Pinheiro", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1158", name: "Bazar Vila Euclides", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1159", name: "J.Valfredo", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1165", name: "Comercio Roupas Planalto", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1171", name: "WB Som", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1186", name: "Omegatron", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1195", name: "Barbosa e Oliveira", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1211", name: "Serelepe Didaticos", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1217", name: "CEOR Administração", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1219", name: "HMS", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1226", name: "Calceaki", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1228", name: "Solução Molas", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1241", name: "Brocar", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1246", name: "109 Centro Treinamento", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1253", name: "M&S Serviços", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1261", name: "Biagioni Bertanha", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1263", name: "Edi Labs", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1274", name: "J & L", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1277", name: "Rio Tera", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1278", name: "Santa Rita Assessoria", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1292", name: "JKE Pescados", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1301", name: "P. U. Latino América", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1303", name: "Herman Wendich", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1307", name: "Henrique Caravanti", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1309", name: "Eletronica Tecno System", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1310", name: "Antera Ind e Com (M)", tax: "Simples Nacional Híbrido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1311", name: "Antera Ind e Com (F)", tax: "Simples Nacional Híbrido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1317", name: "We Improve", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1320", name: "Biagioni Bertanha ADM", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1322", name: "Studio CZ", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1326", name: "Patricia Januário", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1328", name: "Chahine Adm Imóveis", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1332", name: "Defyna Clinica Medica", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1333", name: "Defyna Estética Corporal", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1336", name: "Pelle Dorata", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1337", name: "NT Plásticos", tax: "Lucro Real", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1340", name: "BGJM", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1345", name: "Sivonaldo da Silva", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1347", name: "Voivode", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1353", name: "DK Armarinhos", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1354", name: "M&B Pinheirão", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1355", name: "MDB Automation", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1362", name: "Pet Shop Represa", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1363", name: "Leliana Domingues", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1364", name: "Cesar Capuzzo", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1365", name: "Cava Projetos", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1369", name: "Tucunaré Adm", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1372", name: "Ricardo T Almeida", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1374", name: "Lorenzo", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1384", name: "C.A.L Transporte", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1385", name: "Pet Shop Ipê", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1395", name: "Med A. Otto", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1396", name: "Adriana Pereira Pinto", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1402", name: "MHR Transporte", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1403", name: "Prevco Serviços", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1405", name: "Sami Houssami", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1415", name: "Beleza Pura", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1417", name: "Usina 26", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1418", name: "Verse", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1419", name: "Moniqui Agnes Santos", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1420", name: "HOF Boutique", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1422", name: "Inclutopia", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1423", name: "Madri Grafica", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1427", name: "PE Representações", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1429", name: "Franco e Krepsky", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1431", name: "MAC2 Produções", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1433", name: "Mitmed", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1436", name: "Augusto C Marmores", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1440", name: "SP Bucomaxilo", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1443", name: "HMJ Group", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1445", name: "Lorena Teens", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1446", name: "Mundo Neuro Psi", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1447", name: "Mundo Neuro Psi (Filial 1)", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1449", name: "Cliniclassy", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1452", name: "Orra Deals", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1453", name: "Clinica Espaço Mental", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1455", name: "AMJ Holding", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1457", name: "ESP", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1458", name: "Nanic Toque Especial", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1459", name: "Encore Clinica Dental", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1460", name: "General Bike Store", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1461", name: "Heloisa da Rocha", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1462", name: "Deraldo Alves", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1463", name: "PMR Cavalcanti", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1464", name: "Clinica Espaço Mental (F)", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1465", name: "Rina Bakeware", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1466", name: "M&G Pet Shop", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1467", name: "Guilherme Melchiades", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1468", name: "AGF Administrativo", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1469", name: "Anamnesia HUB", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1470", name: "Pamela Grespan", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1471", name: "Lavanderia We Wash", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1472", name: "Felipe Vieira De Souza", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1474", name: "Pescados Shimote", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1475", name: "Lotus Cosméticos", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1476", name: "Marilia Sarquis", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1477", name: "Golden-8 BYTES", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1478", name: "Hettius Marcenaria", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1479", name: "Victor Eulalio", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1480", name: "Braggio Imoveis", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1481", name: "Denis Comunicação Visual", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1482", name: "Claudinei Gonzales", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1483", name: "Silvia Regina Ramos", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "1484", name: "Arildo Alves Abrahao", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "11083", name: "Thais Soares da Rocha", tax: "MEI", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
+      { code: "11085", name: "Marcelo Augusto", tax: "MEI", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" }
+    ];
+
+    // STATE VARIABLES
+    let companies = [];
+    let closingData = {}; 
+    let currentSelectedCode = null;
+    let currentYear = 2026;
+    let activeCellModalData = null; // { taskIdx, monthIdx }
+
+    // INITIALIZATION
+    document.addEventListener("DOMContentLoaded", () => {
+      checkAuthStatus();
+      loadStateFromStorage();
+      setupEventListeners();
+      renderCompanyList();
+      
+      // Auto-select first company
+      if (companies.length > 0) {
+        selectCompany(companies[0].code);
+      }
+      
+      updateSelectedCompanyStats();
+    });
+
+    function checkAuthStatus() {
+      const isAuth = sessionStorage.getItem("rbm_closing_auth");
+      const lockOverlay = document.getElementById("passwordLockOverlay");
+      if (isAuth === "true") {
+        lockOverlay.classList.add("hidden");
+      } else {
+        lockOverlay.classList.remove("hidden");
+        setTimeout(() => {
+          const pwdInp = document.getElementById("inputAuthPassword");
+          if (pwdInp) pwdInp.focus();
+        }, 100);
+      }
+    }
+
+    // STORAGE HANDLERS
+    function loadStateFromStorage() {
+      const storedCompanies = localStorage.getItem("rbm_closing_companies_v8") || localStorage.getItem("rbm_closing_companies_v7");
+      const storedClosing = localStorage.getItem("rbm_closing_data_v8") || localStorage.getItem("rbm_closing_data_v7");
+      const storedTasks = localStorage.getItem("rbm_closing_tasks_v8") || localStorage.getItem("rbm_closing_tasks_v7");
+
+      if (storedCompanies) {
+        try {
+          companies = JSON.parse(storedCompanies);
+          // Normalize tax names and ensure pre-existing companies have tipo & mesSaida defaults
+          companies.forEach(c => { 
+            c.tax = normalizeTaxName(c.tax);
+            if (!c.tipo || c.tipo.trim() === "" || c.tipo === "Sem Tipo") {
+              c.tipo = "Não informado";
+            }
+            if (c.mesSaida === undefined || c.mesSaida === null) {
+              c.mesSaida = -1;
+            }
+          });
+        } catch(e) {
+          companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+        }
+      } else {
+        companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+      }
+
+      if (storedClosing) {
+        try {
+          closingData = JSON.parse(storedClosing);
+        } catch(e) {
+          closingData = {};
+        }
+      } else {
+        closingData = {};
+      }
+
+      if (storedTasks) {
+        try {
+          closingTasks = JSON.parse(storedTasks);
+        } catch(e) {
+          closingTasks = [...DEFAULT_CLOSING_TASKS];
+        }
+      } else {
+        closingTasks = [...DEFAULT_CLOSING_TASKS];
+      }
+    }
+
+    function saveStateToStorage() {
+      localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
+      localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
+      localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
+      updateSelectedCompanyStats();
+    }
+
+    // HELPER: GET CLOSING RECORD FOR COMPANY & YEAR
+    function getCompanyYearData(code, year) {
+      if (!closingData[code]) closingData[code] = {};
+      if (!closingData[code][year]) {
+        closingData[code][year] = {
+          observations: "",
+          tasks: {}
+        };
+      }
+      return closingData[code][year];
+    }
+
+    // RENDER COMPANY LIST IN SIDEBAR
+    function renderCompanyList() {
+      const listContainer = document.getElementById("companyList");
+      const searchVal = document.getElementById("sideSearchInput").value.toLowerCase().trim();
+      const colabFilter = document.getElementById("filterColaborador").value;
+      const tipoFilter = document.getElementById("filterTipoEmpresa").value;
+      const taxFilter = document.getElementById("filterEnquadramento").value;
+      const statusSaidaFilter = document.getElementById("filterStatusSaida").value;
+
+      const filtered = companies.filter(c => {
+        const matchesSearch = c.code.toLowerCase().includes(searchVal) || c.name.toLowerCase().includes(searchVal);
+        
+        let matchesColab = true;
+        if (colabFilter === "Sem Colaborador") {
+          matchesColab = !c.colaborador || c.colaborador.trim() === "";
+        } else if (colabFilter) {
+          matchesColab = c.colaborador === colabFilter;
+        }
+
+        let matchesTipo = true;
+        if (tipoFilter === "Não informado" || tipoFilter === "Sem Tipo") {
+          matchesTipo = !c.tipo || c.tipo === "Não informado" || c.tipo.trim() === "";
+        } else if (tipoFilter) {
+          matchesTipo = c.tipo === tipoFilter;
+        }
+
+        let matchesTax = true;
+        if (taxFilter) {
+          matchesTax = c.tax === taxFilter;
+        }
+
+        let matchesStatusSaida = true;
+        const compMesSaida = c.mesSaida !== undefined && c.mesSaida !== null ? parseInt(c.mesSaida, 10) : -1;
+        if (statusSaidaFilter === "Ativas") {
+          matchesStatusSaida = compMesSaida < 0;
+        } else if (statusSaidaFilter === "Saidas") {
+          matchesStatusSaida = compMesSaida >= 0;
+        }
+
+        return matchesSearch && matchesColab && matchesTipo && matchesTax && matchesStatusSaida;
+      });
+
+      document.getElementById("companyCountBadge").innerText = companies.length;
+      document.getElementById("statTotalCompanies").innerText = companies.length;
+      document.getElementById("statFilteredCompanies").innerText = filtered.length;
+
+      if (filtered.length === 0) {
+        listContainer.innerHTML = `
+          <div class="p-6 text-center text-slate-400 text-xs">
+            <i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300"></i>
+            <p>Nenhuma empresa encontrada com os filtros selecionados.</p>
+          </div>`;
+        return;
+      }
+
+      listContainer.innerHTML = filtered.map(c => {
+        const isSelected = c.code === currentSelectedCode;
+        const compMesSaida = c.mesSaida !== undefined && c.mesSaida !== null ? parseInt(c.mesSaida, 10) : -1;
+        const isExited = compMesSaida >= 0;
+
+        const colabDisplay = c.colaborador ? `<span class="text-blue-700 font-bold">${c.colaborador}</span>` : '<span class="text-amber-600 font-semibold bg-amber-50 px-1 rounded border border-amber-200">Pendente Atribuição</span>';
+        const tipoVal = (c.tipo && c.tipo.trim() !== "") ? c.tipo : "Não informado";
+        const tipoBadgeClass = tipoVal === "Abertura" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                               tipoVal === "Migrada" ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
+                               "bg-slate-100 text-slate-600 border-slate-200";
+        const tipoBadge = `<span class="text-[9px] font-bold px-1 py-0.2 rounded border ${tipoBadgeClass} mr-1">${tipoVal}</span>`;
+        const exitBadge = isExited ? `<span class="text-[9px] font-bold px-1 py-0.2 rounded bg-slate-200 text-slate-700 border border-slate-300 mr-1">⚪ Saída (${MONTH_NAMES[compMesSaida]})</span>` : '';
+
+        return `
+          <div onclick="selectCompany('${c.code}')" 
+            class="p-3 cursor-pointer transition flex items-center justify-between border-l-4 ${isExited ? 'bg-slate-100/90 border-slate-400 opacity-80' : isSelected ? 'bg-blue-50/90 border-blue-600 shadow-sm' : 'hover:bg-slate-50 border-transparent'}">
+            
+            <div class="flex items-center space-x-2.5 min-w-0">
+              <span class="px-2 py-0.5 font-bold text-[11px] rounded ${isExited ? 'bg-slate-400 text-white' : isSelected ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}">
+                ${c.code}
+              </span>
+              <div class="truncate">
+                <h4 class="font-bold text-xs ${isExited ? 'text-slate-600 line-through' : isSelected ? 'text-blue-900' : 'text-slate-800'} truncate">${c.name}</h4>
+                <p class="text-[10px] text-slate-500 truncate">
+                  ${exitBadge}${tipoBadge} Resp: ${colabDisplay}
+                </p>
+              </div>
+            </div>
+
+            <div class="text-right flex-shrink-0">
+              <span class="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border ${isExited ? 'bg-slate-200 text-slate-600 border-slate-300' : getTaxBadgeClass(c.tax)}">
+                ${getShortTaxName(c.tax)}
+              </span>
+            </div>
+
+          </div>`;
+      }).join('');
+    }
+
+    function getShortTaxName(tax) {
+      if (tax === "Simples Nacional Puro") return "SN Puro";
+      if (tax === "Simples Nacional Híbrido") return "SN Híbrido";
+      if (tax === "Lucro Presumido") return "Lucro Presumido";
+      if (tax === "Lucro Real") return "Lucro Real";
+      return tax || "SN Puro";
+    }
+
+    function getTaxBadgeClass(tax) {
+      switch(tax) {
+        case 'Simples Nacional Puro':
+        case 'SN': return 'bg-blue-50 text-blue-700 border-blue-200';
+        case 'Simples Nacional Híbrido': return 'bg-cyan-50 text-cyan-800 border-cyan-200';
+        case 'Lucro Presumido':
+        case 'LP': return 'bg-purple-50 text-purple-700 border-purple-200';
+        case 'Lucro Real':
+        case 'LR': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        case 'MEI': return 'bg-amber-50 text-amber-700 border-amber-200';
+        default: return 'bg-slate-100 text-slate-600 border-slate-200';
+      }
+    }
+
+    // SELECT COMPANY AND RENDER ROUTINE
+    function selectCompany(code) {
+      const company = companies.find(c => c.code === code);
+      if (!company) return;
+
+      currentSelectedCode = code;
+      renderCompanyList(); // Update sidebar selection highlight
+
+      const compMesSaida = company.mesSaida !== undefined && company.mesSaida !== null ? parseInt(company.mesSaida, 10) : -1;
+
+      // Populate header info
+      document.getElementById("displayCompanyCode").innerText = `CÓD: ${company.code}`;
+      document.getElementById("displayCompanyName").innerText = company.name;
+      document.getElementById("displayTaxBadge").innerText = `ENQUAD: ${company.tax || "Simples Nacional Puro"}`;
+      
+      let tipoText = `TIPO: ${company.tipo || "Não informado"}`;
+      if (compMesSaida >= 0) {
+        tipoText += ` • <span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded border border-slate-300">⚪ SAIU DA RBM (${MONTH_NAMES[compMesSaida]})</span>`;
+      }
+      document.getElementById("displayTipoBadge").innerHTML = tipoText;
+      document.getElementById("displayColaboradorText").innerHTML = company.colaborador ? `<span class="text-blue-700">${company.colaborador}</span>` : '<span class="text-amber-600 italic">Em branco (Clique para atribuir)</span>';
+
+      // Populate inputs
+      document.getElementById("inputCompanyColaborador").value = company.colaborador || "";
+      document.getElementById("inputCompanyTipo").value = company.tipo || "Não informado";
+      document.getElementById("inputCompanyMesSaida").value = compMesSaida;
+      document.getElementById("inputDtEntradaRbm").value = company.dtEntradaRbm || "";
+      document.getElementById("inputCompanyTax").value = company.tax || "Simples Nacional Puro";
+      document.getElementById("inputYear").value = currentYear;
+
+      // Populate observations
+      const yearData = getCompanyYearData(code, currentYear);
+      document.getElementById("inputObservations").value = yearData.observations || "";
+
+      // Render Routine Matrix & Stats for this specific company
+      renderRoutineTable();
+    }
+
+    // RENDER CHECKLIST MATRIX TABLE
+    function renderRoutineTable() {
+      const tbody = document.getElementById("routineTableBody");
+      if (!currentSelectedCode) {
+        tbody.innerHTML = `<tr><td colspan="13" class="p-8 text-center text-slate-400">Selecione uma empresa para visualizar o fechamento.</td></tr>`;
+        return;
+      }
+
+      const company = companies.find(c => c.code === currentSelectedCode);
+      const compMesSaida = (company && company.mesSaida !== undefined && company.mesSaida !== null && company.mesSaida !== "") ? parseInt(company.mesSaida, 10) : -1;
+      const yearData = getCompanyYearData(currentSelectedCode, currentYear);
+
+      let html = "";
+      closingTasks.forEach((taskName, taskIdx) => {
+        html += `
+          <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+            <!-- TASK NAME COLUMN -->
+            <td class="py-2 px-3 font-semibold text-slate-700 text-xs sticky left-0 bg-white shadow-r border-r border-slate-200">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5 pr-2">
+                  <span class="text-[10px] text-slate-400 font-mono w-4">${taskIdx + 1}.</span>
+                  <span>${taskName}</span>
+                </div>
+              </div>
+            </td>`;
+
+        // 12 MONTH COLUMNS
+        for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
+          const isAfterExit = compMesSaida >= 0 && monthIdx >= compMesSaida;
+          const cellData = (yearData.tasks[taskIdx] && yearData.tasks[taskIdx][monthIdx]) || { status: 'DASH', date: '' };
+          
+          let cellStyleClass = "";
+          let labelText = "";
+
+          if (cellData.status === 'CINZA' || (isAfterExit && cellData.status !== 'REALIZADO' && cellData.status !== 'CONCLUIDO')) {
+            cellStyleClass = "status-cinza";
+            labelText = "Inativa / Saída";
+          } else if (cellData.status === 'REALIZADO' || cellData.status === 'CONCLUIDO') {
+            cellStyleClass = "status-realizado";
+            labelText = cellData.date ? `até ${cellData.date}` : "realizado";
+          } else if (cellData.status === 'ANDAMENTO' || cellData.status === 'EM_ANDAMENTO') {
+            cellStyleClass = "status-andamento";
+            labelText = "em andamento";
+          } else if (cellData.status === 'PENDENTE') {
+            cellStyleClass = "status-pendente";
+            labelText = "pendente";
+          } else {
+            // Default Tracinho (Dash / Blank)
+            cellStyleClass = "status-dash";
+            labelText = "—";
+          }
+
+          html += `
+            <td onclick="openCellModal(${taskIdx}, ${monthIdx})" 
+              class="py-1.5 px-1 text-center font-bold text-[10px] grid-cell ${cellStyleClass} border-r border-slate-100">
+              ${labelText}
+            </td>`;
+        }
+
+        html += `</tr>`;
+      });
+
+      tbody.innerHTML = html;
+      updateSelectedCompanyStats();
+    }
+
+    // OPEN CELL EDIT MODAL
+    function openCellModal(taskIdx, monthIdx) {
+      if (!currentSelectedCode) return;
+      
+      activeCellModalData = { taskIdx, monthIdx };
+      const taskName = closingTasks[taskIdx];
+      const monthName = MONTH_NAMES[monthIdx];
+      
+      document.getElementById("modalTaskName").innerText = `${taskIdx + 1}. ${taskName}`;
+      document.getElementById("modalMonthName").innerText = `Mês: ${monthName} de ${currentYear}`;
+
+      const yearData = getCompanyYearData(currentSelectedCode, currentYear);
+      const cellData = (yearData.tasks[taskIdx] && yearData.tasks[taskIdx][monthIdx]) || { status: 'DASH', date: '' };
+
+      document.getElementById("modalCompletionDate").value = cellData.date || getCurrentShortDate();
+
+      document.getElementById("cellModal").classList.remove("hidden");
+    }
+
+    function closeCellModal() {
+      document.getElementById("cellModal").classList.add("hidden");
+      activeCellModalData = null;
+    }
+
+    function getCurrentShortDate() {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      return `${dd}/${mm}`;
+    }
+
+    // STATS CALCULATIONS - FOCUSED SPECIFICALLY ON THE CURRENTLY SELECTED COMPANY
+    function updateSelectedCompanyStats() {
+      const selectedMonth = parseInt(document.getElementById("statMonthSelect").value, 10);
+      
+      if (!currentSelectedCode) {
+        document.getElementById("statDoneCount").innerText = `0/21`;
+        document.getElementById("statAndamentoCount").innerText = `0/21`;
+        document.getElementById("statPendingCount").innerText = `0/21`;
+        document.getElementById("statProgressBar").style.width = `0%`;
+        document.getElementById("statProgressText").innerText = `0%`;
+        return;
+      }
+
+      const yearData = getCompanyYearData(currentSelectedCode, currentYear);
+      let doneCount = 0;
+      let andamentoCount = 0;
+      let pendingCount = 0;
+      const totalTasks = closingTasks.length; // 21 tasks
+
+      closingTasks.forEach((_, taskIdx) => {
+        const cell = (yearData.tasks[taskIdx] && yearData.tasks[taskIdx][selectedMonth]) || { status: 'DASH' };
+        if (cell.status === 'REALIZADO' || cell.status === 'CONCLUIDO') {
+          doneCount++;
+        } else if (cell.status === 'ANDAMENTO' || cell.status === 'EM_ANDAMENTO') {
+          andamentoCount++;
+        } else if (cell.status === 'PENDENTE') {
+          pendingCount++;
+        }
+      });
+
+      document.getElementById("statDoneCount").innerText = `${doneCount}/${totalTasks}`;
+      document.getElementById("statAndamentoCount").innerText = `${andamentoCount}/${totalTasks}`;
+      document.getElementById("statPendingCount").innerText = `${pendingCount}/${totalTasks}`;
+      
+      const pct = totalTasks > 0 ? Math.round((doneCount / totalTasks) * 100) : 0;
+      document.getElementById("statProgressBar").style.width = `${pct}%`;
+      document.getElementById("statProgressText").innerText = `${pct}%`;
+    }
+
+    // EDIT TASKS LIST MODAL
+    function renderTasksModalList() {
+      const container = document.getElementById("tasksModalList");
+      container.innerHTML = closingTasks.map((t, idx) => `
+        <div class="flex items-center space-x-2">
+          <span class="w-6 font-mono font-bold text-slate-400 text-[11px] text-right">${idx + 1}.</span>
+          <input type="text" data-task-index="${idx}" value="${t}" 
+            class="task-name-input flex-1 p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+      `).join('');
+    }
+
+    // EVENT LISTENERS SETUP
+    function setupEventListeners() {
+      
+      // Top & Side Search Filter
+      document.getElementById("sideSearchInput").addEventListener("input", renderCompanyList);
+      document.getElementById("filterColaborador").addEventListener("change", renderCompanyList);
+      document.getElementById("filterTipoEmpresa").addEventListener("change", renderCompanyList);
+      document.getElementById("filterEnquadramento").addEventListener("change", renderCompanyList);
+      document.getElementById("filterStatusSaida").addEventListener("change", renderCompanyList);
+      document.getElementById("statMonthSelect").addEventListener("change", updateSelectedCompanyStats);
+
+      // Direct top code lookup input
+      const topSearch = document.getElementById("topSearchInput");
+      const dropdown = document.getElementById("searchDropdown");
+
+      topSearch.addEventListener("input", (e) => {
+        const val = e.target.value.toLowerCase().trim();
+        if (!val) {
+          dropdown.classList.add("hidden");
+          return;
+        }
+
+        const matches = companies.filter(c => c.code.toLowerCase().includes(val) || c.name.toLowerCase().includes(val)).slice(0, 8);
+        if (matches.length === 0) {
+          dropdown.innerHTML = `<div class="p-3 text-xs text-slate-400">Nenhuma empresa encontrada</div>`;
+        } else {
+          dropdown.innerHTML = matches.map(c => `
+            <div onclick="selectFromDropdown('${c.code}')" class="p-2.5 hover:bg-blue-50 cursor-pointer text-xs border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded mr-2">CÓD ${c.code}</span>
+                <span class="font-semibold text-slate-800">${c.name}</span>
+              </div>
+              <span class="text-[10px] text-slate-400 font-semibold">${getShortTaxName(c.tax)}</span>
+            </div>
+          `).join('');
+        }
+        dropdown.classList.remove("hidden");
+      });
+
+      document.getElementById("btnQuickLookup").addEventListener("click", () => {
+        const val = topSearch.value.trim();
+        if (val) {
+          const exact = companies.find(c => c.code === val || c.name.toLowerCase() === val.toLowerCase());
+          if (exact) {
+            selectCompany(exact.code);
+            dropdown.classList.add("hidden");
+          }
+        }
+      });
+
+      // Year switch
+      document.getElementById("inputYear").addEventListener("change", (e) => {
+        currentYear = parseInt(e.target.value, 10) || 2026;
+        if (currentSelectedCode) {
+          selectCompany(currentSelectedCode);
+        }
+      });
+
+      // Dynamic editing of metadata for current company
+      document.getElementById("inputCompanyColaborador").addEventListener("change", (e) => {
+        if (!currentSelectedCode) return;
+        const comp = companies.find(c => c.code === currentSelectedCode);
+        if (comp) {
+          comp.colaborador = e.target.value;
+          saveStateToStorage();
+          selectCompany(currentSelectedCode);
+        }
+      });
+
+      document.getElementById("inputCompanyTipo").addEventListener("change", (e) => {
+        if (!currentSelectedCode) return;
+        const comp = companies.find(c => c.code === currentSelectedCode);
+        if (comp) {
+          comp.tipo = e.target.value;
+          saveStateToStorage();
+          selectCompany(currentSelectedCode);
+        }
+      });
+
+      document.getElementById("inputCompanyTax").addEventListener("change", (e) => {
+        if (!currentSelectedCode) return;
+        const comp = companies.find(c => c.code === currentSelectedCode);
+        if (comp) {
+          comp.tax = e.target.value;
+          saveStateToStorage();
+          selectCompany(currentSelectedCode);
+        }
+      });
+
+      document.getElementById("inputDtEntradaRbm").addEventListener("blur", (e) => {
+        if (!currentSelectedCode) return;
+        const comp = companies.find(c => c.code === currentSelectedCode);
+        if (comp) {
+          comp.dtEntradaRbm = e.target.value;
+          saveStateToStorage();
+        }
+      });
+
+      document.getElementById("inputObservations").addEventListener("input", (e) => {
+        if (!currentSelectedCode) return;
+        const yearData = getCompanyYearData(currentSelectedCode, currentYear);
+        yearData.observations = e.target.value;
+        saveStateToStorage();
+      });
+
+      document.getElementById("inputCompanyMesSaida").addEventListener("change", (e) => {
+        if (!currentSelectedCode) return;
+        const comp = companies.find(c => c.code === currentSelectedCode);
+        if (comp) {
+          comp.mesSaida = parseInt(e.target.value, 10);
+          saveStateToStorage();
+          selectCompany(currentSelectedCode);
+        }
+      });
+
+      // CELL MODAL BUTTONS
+      document.getElementById("btnCloseCellModal").addEventListener("click", closeCellModal);
+      document.getElementById("btnCancelCellModal").addEventListener("click", closeCellModal);
+
+      let modalSelectedStatus = 'DASH';
+
+      document.getElementById("btnSetDash").addEventListener("click", () => {
+        modalSelectedStatus = 'DASH';
+        saveModalCellChange();
+      });
+
+      document.getElementById("btnSetPendente").addEventListener("click", () => {
+        modalSelectedStatus = 'PENDENTE';
+        saveModalCellChange();
+      });
+
+      document.getElementById("btnSetAndamento").addEventListener("click", () => {
+        modalSelectedStatus = 'ANDAMENTO';
+        saveModalCellChange();
+      });
+
+      document.getElementById("btnSetRealizado").addEventListener("click", () => {
+        modalSelectedStatus = 'REALIZADO';
+        saveModalCellChange();
+      });
+
+      document.getElementById("btnSetCinza").addEventListener("click", () => {
+        modalSelectedStatus = 'CINZA';
+        saveModalCellChange();
+      });
+
+      document.getElementById("btnSaveCellModal").addEventListener("click", () => {
+        saveModalCellChange();
+      });
+
+      function saveModalCellChange() {
+        if (!activeCellModalData || !currentSelectedCode) return;
+        const { taskIdx, monthIdx } = activeCellModalData;
+        const yearData = getCompanyYearData(currentSelectedCode, currentYear);
+        const compDate = document.getElementById("modalCompletionDate").value.trim() || getCurrentShortDate();
+
+        if (!yearData.tasks[taskIdx]) yearData.tasks[taskIdx] = {};
+        
+        yearData.tasks[taskIdx][monthIdx] = {
+          status: modalSelectedStatus,
+          date: modalSelectedStatus === 'REALIZADO' ? compDate : ''
+        };
+
+        saveStateToStorage();
+        renderRoutineTable();
+        closeCellModal();
+      }
+
+      // NEW / EDIT COMPANY MODAL HANDLERS
+      document.getElementById("btnNewCompany").addEventListener("click", () => {
+        document.getElementById("companyModalTitle").innerText = "Cadastrar Nova Empresa";
+        document.getElementById("modalCompanyOriginalCode").value = "";
+        document.getElementById("modalInputCode").value = "";
+        document.getElementById("modalInputName").value = "";
+        document.getElementById("modalInputTax").value = "Simples Nacional Puro";
+        document.getElementById("modalInputTipo").value = "Não informado";
+        document.getElementById("modalInputColaborador").value = "";
+        document.getElementById("modalInputDtEntradaRbm").value = "";
+        document.getElementById("modalInputMesSaida").value = "-1";
+        document.getElementById("companyModal").classList.remove("hidden");
+      });
+
+      document.getElementById("btnEditSelectedCompany").addEventListener("click", () => {
+        if (!currentSelectedCode) return;
+        const comp = companies.find(c => c.code === currentSelectedCode);
+        if (!comp) return;
+
+        document.getElementById("companyModalTitle").innerText = "Editar Empresa";
+        document.getElementById("modalCompanyOriginalCode").value = comp.code;
+        document.getElementById("modalInputCode").value = comp.code;
+        document.getElementById("modalInputName").value = comp.name;
+        document.getElementById("modalInputTax").value = comp.tax || "Simples Nacional Puro";
+        document.getElementById("modalInputTipo").value = comp.tipo || "Não informado";
+        document.getElementById("modalInputColaborador").value = comp.colaborador || "";
+        document.getElementById("modalInputDtEntradaRbm").value = comp.dtEntradaRbm || "";
+        document.getElementById("modalInputMesSaida").value = (comp.mesSaida !== undefined && comp.mesSaida !== null) ? comp.mesSaida : "-1";
+        document.getElementById("companyModal").classList.remove("hidden");
+      });
+
+      document.getElementById("btnCloseCompanyModal").addEventListener("click", () => {
+        document.getElementById("companyModal").classList.add("hidden");
+      });
+      document.getElementById("btnCancelCompanyModal").addEventListener("click", () => {
+        document.getElementById("companyModal").classList.add("hidden");
+      });
+
+      document.getElementById("companyForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const origCode = document.getElementById("modalCompanyOriginalCode").value;
+        const newCode = document.getElementById("modalInputCode").value.trim();
+        const name = document.getElementById("modalInputName").value.trim();
+        const tax = document.getElementById("modalInputTax").value;
+        const tipo = document.getElementById("modalInputTipo").value || "Não informado";
+        const colab = document.getElementById("modalInputColaborador").value;
+        const dtEntradaRbm = document.getElementById("modalInputDtEntradaRbm").value.trim();
+        const mesSaida = parseInt(document.getElementById("modalInputMesSaida").value, 10);
+
+        if (origCode) {
+          // Editing existing
+          const comp = companies.find(c => c.code === origCode);
+          if (comp) {
+            comp.code = newCode;
+            comp.name = name;
+            comp.tax = tax;
+            comp.tipo = tipo;
+            comp.colaborador = colab;
+            comp.dtEntradaRbm = dtEntradaRbm;
+            comp.mesSaida = mesSaida;
+
+            if (origCode !== newCode && closingData[origCode]) {
+              closingData[newCode] = closingData[origCode];
+              delete closingData[origCode];
+            }
+          }
+        } else {
+          // Adding new company
+          if (companies.some(c => c.code === newCode)) {
+            alert("Atenção: Já existe uma empresa com esse CÓDIGO!");
+            return;
+          }
+          companies.push({ code: newCode, name, tax, tipo, colaborador: colab, dtEntradaRbm, mesSaida });
+        }
+
+        saveStateToStorage();
+        renderCompanyList();
+        selectCompany(newCode);
+        document.getElementById("companyModal").classList.add("hidden");
+      });
+
+      // EDIT TASKS MODAL HANDLERS
+      document.getElementById("btnEditTasksModal").addEventListener("click", () => {
+        renderTasksModalList();
+        document.getElementById("tasksModal").classList.remove("hidden");
+      });
+      document.getElementById("btnCloseTasksModal").addEventListener("click", () => {
+        document.getElementById("tasksModal").classList.add("hidden");
+      });
+      document.getElementById("btnCancelTasksModal").addEventListener("click", () => {
+        document.getElementById("tasksModal").classList.add("hidden");
+      });
+      document.getElementById("btnResetTasks").addEventListener("click", () => {
+        if (confirm("Deseja restaurar a lista padrão informal de escritório para as 21 tarefas contábeis?")) {
+          closingTasks = [...DEFAULT_CLOSING_TASKS];
+          saveStateToStorage();
+          renderRoutineTable();
+          document.getElementById("tasksModal").classList.add("hidden");
+        }
+      });
+      document.getElementById("btnSaveTasksModal").addEventListener("click", () => {
+        const inputs = document.querySelectorAll(".task-name-input");
+        inputs.forEach(inp => {
+          const idx = parseInt(inp.dataset.taskIndex, 10);
+          const val = inp.value.trim();
+          if (val) closingTasks[idx] = val;
+        });
+        saveStateToStorage();
+        renderRoutineTable();
+        document.getElementById("tasksModal").classList.add("hidden");
+      });
+
+      // DELETE COMPANY
+      document.getElementById("btnDeleteSelectedCompany").addEventListener("click", () => {
+        if (!currentSelectedCode) return;
+        const comp = companies.find(c => c.code === currentSelectedCode);
+        if (!comp) return;
+
+        if (confirm(`Tem certeza que deseja excluir a empresa "${comp.name}" (CÓD: ${comp.code})?`)) {
+          companies = companies.filter(c => c.code !== currentSelectedCode);
+          delete closingData[currentSelectedCode];
+          saveStateToStorage();
+          
+          if (companies.length > 0) {
+            selectCompany(companies[0].code);
+          } else {
+            currentSelectedCode = null;
+            renderCompanyList();
+            renderRoutineTable();
+          }
+        }
+      });
+
+      // IMPORT / EXPORT BACKUP
+      document.getElementById("btnExportData").addEventListener("click", () => {
+        const payload = {
+          companies,
+          closingData,
+          closingTasks,
+          exportDate: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Backup_Fechamento_Contabil_RBM_${getCurrentShortDate().replace('/','-')}.json`;
+        a.click();
+      });
+
+      document.getElementById("btnImportData").addEventListener("click", () => {
+        document.getElementById("importFileInput").click();
+      });
+
+      document.getElementById("importFileInput").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = JSON.parse(event.target.result);
+            if (data.companies && data.closingData) {
+              companies = data.companies;
+              closingData = data.closingData;
+              if (data.closingTasks) closingTasks = data.closingTasks;
+              saveStateToStorage();
+              renderCompanyList();
+              if (companies.length > 0) selectCompany(companies[0].code);
+              alert("Backup importado com sucesso!");
+            } else {
+              alert("Arquivo de backup inválido.");
+            }
+          } catch(err) {
+            alert("Erro ao ler o arquivo JSON.");
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      // PASSWORD PROTECTION HANDLERS
+      document.getElementById("passwordForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const pwdInp = document.getElementById("inputAuthPassword");
+        const pwd = pwdInp.value;
+        const errorMsg = document.getElementById("passwordErrorMsg");
+
+        if (pwd.trim() === "Rbmcontabil") {
+          sessionStorage.setItem("rbm_closing_auth", "true");
+          document.getElementById("passwordLockOverlay").classList.add("hidden");
+          errorMsg.classList.add("hidden");
+          pwdInp.classList.remove("border-rose-500", "bg-rose-50");
+          pwdInp.value = "";
+        } else {
+          errorMsg.classList.remove("hidden");
+          pwdInp.classList.add("border-rose-500", "bg-rose-50");
+          pwdInp.focus();
+        }
+      });
+
+      document.getElementById("btnTogglePasswordVisibility").addEventListener("click", () => {
+        const pwdInp = document.getElementById("inputAuthPassword");
+        const eyeIcon = document.getElementById("eyeIcon");
+        if (pwdInp.type === "password") {
+          pwdInp.type = "text";
+          eyeIcon.classList.remove("fa-eye");
+          eyeIcon.classList.add("fa-eye-slash");
+        } else {
+          pwdInp.type = "password";
+          eyeIcon.classList.remove("fa-eye-slash");
+          eyeIcon.classList.add("fa-eye");
+        }
+      });
+
+      document.getElementById("btnLockApp").addEventListener("click", () => {
+        sessionStorage.removeItem("rbm_closing_auth");
+        const pwdInp = document.getElementById("inputAuthPassword");
+        pwdInp.value = "";
+        pwdInp.classList.remove("border-rose-500", "bg-rose-50");
+        document.getElementById("passwordErrorMsg").classList.add("hidden");
+        document.getElementById("passwordLockOverlay").classList.remove("hidden");
+        pwdInp.focus();
+      });
+
+      // SECURITY MODAL HANDLERS
+      document.getElementById("btnOpenSecurity").addEventListener("click", () => {
+        document.getElementById("securityModal").classList.remove("hidden");
+      });
+      document.getElementById("btnCloseSecurityModal").addEventListener("click", () => {
+        document.getElementById("securityModal").classList.add("hidden");
+      });
+      document.getElementById("btnOKSecurityModal").addEventListener("click", () => {
+        document.getElementById("securityModal").classList.add("hidden");
+      });
+      document.getElementById("btnDownloadBackupModal").addEventListener("click", () => {
+        document.getElementById("securityModal").classList.add("hidden");
+        document.getElementById("btnExportData").click();
+      });
+
+    }
+
+    function selectFromDropdown(code) {
+      document.getElementById("searchDropdown").classList.add("hidden");
+      document.getElementById("topSearchInput").value = "";
+      selectCompany(code);
+    }
+  </script>
+
+</body>
+</html>

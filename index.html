@@ -1536,11 +1536,27 @@
         saveStateToStorage();
       });
 
+      // HELPER: APPLY CINZA STATUS TO ALL MONTHS FROM EXIT MONTH ONWARDS
+      function applyCompanyExitData(code, mesSaidaVal) {
+        if (mesSaidaVal < 0) return;
+        const yearData = getCompanyYearData(code, currentYear);
+        closingTasks.forEach((_, taskIdx) => {
+          if (!yearData.tasks[taskIdx]) yearData.tasks[taskIdx] = {};
+          for (let m = mesSaidaVal; m < 12; m++) {
+            yearData.tasks[taskIdx][m] = { status: 'CINZA', date: '' };
+          }
+        });
+      }
+
       document.getElementById("inputCompanyMesSaida").addEventListener("change", (e) => {
         if (!currentSelectedCode) return;
         const comp = companies.find(c => c.code === currentSelectedCode);
         if (comp) {
-          comp.mesSaida = parseInt(e.target.value, 10);
+          const val = parseInt(e.target.value, 10);
+          comp.mesSaida = val;
+          if (val >= 0) {
+            applyCompanyExitData(currentSelectedCode, val);
+          }
           saveStateToStorage();
           selectCompany(currentSelectedCode);
         }
@@ -1672,6 +1688,10 @@
             return;
           }
           companies.push({ code: newCode, name, tax, tipo, colaborador: colab, dtEntradaRbm, mesSaida });
+        }
+
+        if (mesSaida >= 0) {
+          applyCompanyExitData(newCode, mesSaida);
         }
 
         saveStateToStorage();

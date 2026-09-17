@@ -1306,13 +1306,18 @@
 
         // 12 MONTH COLUMNS
         for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
-          const isAfterExit = compMesSaida >= 0 && monthIdx >= compMesSaida;
+          const compAnoSaida = (company && company.anoSaida) ? parseInt(company.anoSaida, 10) : 2026;
+          const isAfterExit = compMesSaida >= 0 && (
+            currentYear > compAnoSaida || 
+            (currentYear === compAnoSaida && monthIdx >= compMesSaida)
+          );
+
           const cellData = (yearData.tasks[taskIdx] && yearData.tasks[taskIdx][monthIdx]) || { status: 'DASH', date: '' };
           
           let cellStyleClass = "";
           let labelText = "";
 
-          if (cellData.status === 'CINZA' || (isAfterExit && cellData.status !== 'REALIZADO' && cellData.status !== 'CONCLUIDO')) {
+          if (cellData.status === 'CINZA' || isAfterExit) {
             cellStyleClass = "status-cinza";
             labelText = "Inativa / Saída";
           } else if (cellData.status === 'REALIZADO' || cellData.status === 'CONCLUIDO') {

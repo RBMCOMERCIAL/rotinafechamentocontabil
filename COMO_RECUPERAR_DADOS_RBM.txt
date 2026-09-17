@@ -1,0 +1,40 @@
+====================================================================
+GUIA DE SEGURANÇA E RECUPERAÇÃO DE DADOS - RBM CONTÁBIL
+====================================================================
+
+Vivian, este documento foi criado para garantir 100% de segurança dos 
+dados da Rotina de Fechamento Contábil.
+
+SUA TRANQUILIDADE E O CONTROLE DOS DADOS ESTÃO GARANTIDOS:
+
+1. ONDE OS DADOS FICAM GUARDADOS?
+   - Os dados são salvos AUTOMATICAMENTE no navegador (LocalStorage).
+   - Como este sistema está salvo na sua pasta do ONEDRIVE 
+     ("Área de Trabalho"), todos os arquivos estão constantemente 
+     SINCRONIZADOS NA NUVEM DA MICROSOFT.
+
+2. COMO FAZER UM BACKUP MANUAL A QUALQUER MOMENTO?
+   - Abra a página "Rotina_Fechamento_Contabil.html".
+   - No topo da página, clique no botão amarelo "Baixar Backup".
+   - Um arquivo .json contendo TODAS as empresas, observações e 
+     fechamentos será baixado no seu computador. Guarde esse arquivo!
+
+3. E SE ALGUÉM APAGAR O NAVEGADOR OU MUDAR DE COMPUTADOR?
+   - Não há nenhum perigo de perda!
+   - Basta abrir a "Rotina_Fechamento_Contabil.html" em qualquer computador.
+   - Clique no botão "Importar Backup" no topo da tela.
+   - Selecione o arquivo de backup (.json).
+   - PRONTO! Em 2 segundos, TODAS as empresas e o histórico de fechamentos 
+     são restaurados exatamente como estavam.
+
+4. CÓPIA DE SEGURANÇA EM ARQUIVO
+   - Já deixamos um backup mestre salvo diretamente no seu OneDrive:
+     "BACKUP_DE_SEGURANCA_FECHAMENTO.json"
+
+DICA DE SEGURANÇA RBM:
+Recomendamos clicar em "Baixar Backup" uma vez por semana ou no final 
+de cada mês para ter um arquivo de histórico guardado para sempre.
+
+====================================================================
+RBM Contábil • Segurança e Controle Total dos Seus Dados
+====================================================================

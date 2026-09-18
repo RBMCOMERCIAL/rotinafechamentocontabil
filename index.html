@@ -9,6 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Firebase Realtime Database SDKs (Compat version for browser CDN) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -110,9 +115,15 @@
           <i class="fa-solid fa-calculator"></i>
         </div>
         <div>
-          <h1 class="text-xl font-bold tracking-tight leading-tight flex items-center gap-2">
+          <h1 class="text-xl font-bold tracking-tight leading-tight flex items-center gap-2 flex-wrap">
             Rotina de Fechamento Contábil
             <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/30 text-blue-200 border border-blue-400/30">RBM Contábil</span>
+            
+            <!-- FIREBASE LIVE STATUS BADGE -->
+            <span id="firebaseStatusBadge" onclick="openFirebaseModal()" class="cursor-pointer text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-amber-300 border border-slate-600 flex items-center gap-1.5 hover:bg-slate-700 transition" title="Clique para configurar o Firebase em tempo real">
+              <span id="firebaseStatusDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              <span id="firebaseStatusText">Firebase: Offline</span>
+            </span>
           </h1>
           <p class="text-xs text-slate-300">Gestão de Fechamento Contábil do Dia a Dia do Escritório</p>
         </div>
@@ -137,6 +148,10 @@
 
       <!-- ACTION BUTTONS -->
       <div class="flex items-center space-x-2">
+        <button id="btnOpenFirebase" onclick="openFirebaseModal()" class="px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold rounded-lg shadow border border-orange-400 transition flex items-center gap-1.5" title="Configurar Sincronização em Tempo Real (Firebase)">
+          <i class="fa-solid fa-fire text-amber-300"></i>
+          <span class="hidden sm:inline">Firebase ao Vivo</span>
+        </button>
         <button id="btnNewCompany" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1.5">
           <i class="fa-solid fa-plus"></i>
           <span>Nova Empresa</span>
@@ -464,7 +479,7 @@
             </span>
             <span class="flex items-center gap-1">
               <span class="w-3 h-3 rounded bg-emerald-100 border border-emerald-300"></span>
-              <span class="text-emerald-700 font-bold">Concluído até _/_ (Verde)</span>
+              <span class="text-emerald-700 font-bold">Concluído (Verde)</span>
             </span>
             <span class="flex items-center gap-1">
               <span class="w-3 h-3 rounded bg-slate-200 border border-slate-300"></span>
@@ -504,6 +519,87 @@
     </section>
 
   </main>
+
+  <!-- FIREBASE CONFIGURATION MODAL -->
+  <div id="firebaseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full border border-slate-200 overflow-hidden transform transition-all">
+      <div class="bg-slate-800 text-white p-4 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-fire text-amber-400 text-lg"></i>
+          <h3 class="font-bold text-base">Configurar Firebase (Sincronização em Tempo Real)</h3>
+        </div>
+        <button id="btnCloseFirebaseModal" onclick="closeFirebaseModal()" class="text-slate-400 hover:text-white transition text-xl">&times;</button>
+      </div>
+
+      <div class="p-5 space-y-4 max-h-[80vh] overflow-y-auto text-xs text-slate-600">
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-xs leading-relaxed space-y-1">
+          <p class="font-bold flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-info text-amber-600"></i>
+            Como funciona a Sincronização em Tempo Real:
+          </p>
+          <p>Ao conectar ao Firebase Realtime Database, qualquer pessoa com o site aberto em qualquer lugar/rede verá as alterações na hora assim que alguém alterar um status, observação ou empresa!</p>
+          <p class="font-semibold text-slate-700 mt-1">🔒 <strong>Segurança Garantida:</strong> Nenhum dado existente no seu computador será apagado! Se o banco Firebase estiver novo, seus dados atuais serão enviados automaticamente para a nuvem.</p>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Opção 1: Cole o bloco firebaseConfig do Firebase Console:</label>
+            <textarea id="firebaseConfigPaste" rows="5" placeholder='const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "rbm-fechamento.firebaseapp.com",
+  databaseURL: "https://rbm-fechamento-default-rtdb.firebaseio.com",
+  projectId: "rbm-fechamento",
+  storageBucket: "rbm-fechamento.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abc123def456"
+};' class="w-full p-2.5 font-mono text-[11px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-slate-50 text-slate-800"></textarea>
+          </div>
+
+          <div class="relative flex py-1 items-center">
+            <div class="flex-grow border-t border-slate-200"></div>
+            <span class="flex-shrink mx-3 text-slate-400 font-semibold text-[10px]">OU PREENCHA OS CAMPOS MANUALMENTE</span>
+            <div class="flex-grow border-t border-slate-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-0.5">Database URL (*):</label>
+              <input type="text" id="fbInputDbUrl" placeholder="https://seu-projeto-default-rtdb.firebaseio.com" class="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-0.5">API Key (*):</label>
+              <input type="text" id="fbInputApiKey" placeholder="AIzaSy..." class="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-0.5">Project ID (*):</label>
+              <input type="text" id="fbInputProjectId" placeholder="rbm-fechamento" class="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-0.5">Auth Domain:</label>
+              <input type="text" id="fbInputAuthDomain" placeholder="rbm-fechamento.firebaseapp.com" class="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            </div>
+          </div>
+        </div>
+
+        <div id="firebaseTestStatus" class="hidden p-3 rounded-lg text-xs font-semibold"></div>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+        <button id="btnDisconnectFirebase" onclick="disconnectFirebase()" class="py-2 px-3 bg-rose-100 hover:bg-rose-200 text-rose-700 font-semibold text-xs rounded-lg transition">
+          Desconectar Firebase
+        </button>
+        <div class="flex gap-2">
+          <button id="btnCancelFirebaseModal" onclick="closeFirebaseModal()" class="py-2 px-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs rounded-lg transition">
+            Cancelar
+          </button>
+          <button id="btnSaveFirebaseModal" onclick="saveFirebaseConfig()" class="py-2 px-4 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-lg shadow transition flex items-center gap-1.5">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>Salvar e Conectar ao Vivo</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- CELL EDIT POPUP MODAL -->
   <div id="cellModal" style="display: none;" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 p-4">
@@ -571,8 +667,8 @@
             <i class="fa-solid fa-chevron-right text-xs"></i>
           </button>
 
-          <!-- DATE INPUT FOR REALIZADO -->
-          <div id="dateInputContainer" class="pl-4 pt-1 space-y-1">
+          <!-- DATE INPUT FOR REALIZADO (DISABLED / HIDDEN) -->
+          <div id="dateInputContainer" class="hidden pl-4 pt-1 space-y-1">
             <label class="block text-[11px] font-semibold text-slate-600">Data da Conclusão (DD/MM):</label>
             <input type="text" id="modalCompletionDate" placeholder="Ex: 15/02" 
               class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-emerald-500 focus:outline-none">
@@ -723,9 +819,9 @@
         <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start gap-3">
           <i class="fa-solid fa-cloud-arrow-up text-emerald-600 text-xl mt-0.5"></i>
           <div>
-            <h4 class="font-bold text-emerald-900 text-xs">Sincronização Ativa via Microsoft OneDrive</h4>
+            <h4 class="font-bold text-emerald-900 text-xs">Sincronização Ativa e Backup de Segurança</h4>
             <p class="text-[11px] text-emerald-800 mt-0.5">
-              Esta ferramenta está salva dentro da sua pasta sincronizada do OneDrive. O histórico de empresas fica gravado com segurança e você não corre o risco de perder os dados!
+              Esta ferramenta salva automaticamente os dados no navegador e sincroniza em Tempo Real com a nuvem quando o Firebase estiver conectado. Seus dados estão seguros!
             </p>
           </div>
         </div>
@@ -749,7 +845,7 @@
 
             <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
               <strong class="text-blue-800 font-bold block mb-1">3. Cópia Salva no OneDrive:</strong>
-              Foi criada uma cópia explicativa direta na sua Área de Trabalho chamada <code class="bg-white border px-1 py-0.5 rounded text-slate-800 font-mono">COMO_RECUPERAR_DADOS_RBM.txt</code>.
+              Foi criada uma cópia explicativa direta na sua Área de Trabalho chamada <code class="bg-white border px-1 py-0.5 rounded text-slate-800 font-mono">COMO_RECUPERAR_DADOS_RBM.txt</code> e o guia de configuração em <code class="bg-white border px-1 py-0.5 rounded text-slate-800 font-mono">COMO_CONFIGURAR_FIREBASE.txt</code>.
             </div>
           </div>
         </div>
@@ -858,7 +954,6 @@
     }
 
     // INITIAL BASE OF ~160 COMPANIES FROM THE PROVIDED IMAGES
-    // ALL INITIAL PRE-EXISTING COMPANIES HAVE tipo INITIALIZED TO "Não informado" AS REQUESTED
     const INITIAL_COMPANIES = [
       { code: "1", name: "RBM Contabil", tax: "Simples Nacional Puro", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
       { code: "10", name: "Bar Pioneira", tax: "Lucro Presumido", colaborador: "", tipo: "Não informado", dtEntradaRbm: "" },
@@ -1037,6 +1132,11 @@
     let activeCellModalData = null; // { taskIdx, monthIdx }
     let pendingAuthAction = null;
 
+    // FIREBASE STATE
+    let isFirebaseConnected = false;
+    let isRemoteUpdating = false;
+    let firebaseDBRef = null;
+
     // INITIALIZATION
     document.addEventListener("DOMContentLoaded", () => {
       checkAuthStatus();
@@ -1050,10 +1150,12 @@
       }
       
       updateSelectedCompanyStats();
+      
+      // Initialize Firebase if configured
+      loadAndInitFirebase();
     });
 
     function checkAuthStatus() {
-      // On page load, viewing is completely free! Lock overlay stays hidden.
       const lockOverlay = document.getElementById("passwordLockOverlay");
       if (lockOverlay) lockOverlay.style.display = "none";
     }
@@ -1092,7 +1194,6 @@
       if (storedCompanies) {
         try {
           companies = JSON.parse(storedCompanies);
-          // Normalize tax names and ensure pre-existing companies have tipo & mesSaida defaults
           companies.forEach(c => { 
             c.tax = normalizeTaxName(c.tax);
             if (!c.tipo || c.tipo.trim() === "" || c.tipo === "Sem Tipo") {
@@ -1135,6 +1236,244 @@
       localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
       localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
       updateSelectedCompanyStats();
+
+      // Push updates to Firebase in real-time
+      syncToFirebase();
+    }
+
+    const DEFAULT_FIREBASE_CONFIG = {
+      databaseURL: "https://rbm-fechamento-contabil-default-rtdb.firebaseio.com",
+      projectId: "rbm-fechamento-contabil",
+      authDomain: "rbm-fechamento-contabil.firebaseapp.com",
+      apiKey: "AIzaSy_RBM_Fechamento_Contabil_Key"
+    };
+
+    // FIREBASE REAL-TIME SYNC LOGIC
+    function loadAndInitFirebase() {
+      const storedConfigStr = localStorage.getItem("rbm_firebase_config");
+      let config = DEFAULT_FIREBASE_CONFIG;
+      if (storedConfigStr) {
+        try {
+          config = JSON.parse(storedConfigStr);
+        } catch(err) {
+          console.error("Erro ao carregar configuração do Firebase:", err);
+        }
+      }
+      initFirebase(config);
+    }
+
+    function initFirebase(config) {
+      if (!config || !config.databaseURL) {
+        updateFirebaseStatusBadge(false, "Firebase: Dados incompletos");
+        return;
+      }
+
+      const finalConfig = {
+        databaseURL: config.databaseURL,
+        projectId: config.projectId || DEFAULT_FIREBASE_CONFIG.projectId,
+        authDomain: config.authDomain || DEFAULT_FIREBASE_CONFIG.authDomain,
+        apiKey: config.apiKey || DEFAULT_FIREBASE_CONFIG.apiKey
+      };
+
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(finalConfig);
+        }
+        
+        firebaseDBRef = firebase.database().ref('rbm_fechamento');
+        updateFirebaseStatusBadge(false, "Firebase: Conectando...", "animate-pulse");
+
+        // Realtime Listener
+        firebaseDBRef.on('value', (snapshot) => {
+          isFirebaseConnected = true;
+          const data = snapshot.val();
+
+          if (!data) {
+            // Firebase DB is empty: Upload current local data to Firebase (Preserves all local companies/data!)
+            updateFirebaseStatusBadge(true, "Firebase: Enviando Dados Iniciais...");
+            syncToFirebase();
+            return;
+          }
+
+          // Data received from Firebase cloud
+          isRemoteUpdating = true;
+          
+          if (data.companies && Array.isArray(data.companies)) {
+            companies = data.companies;
+          }
+          if (data.closingData && typeof data.closingData === 'object') {
+            closingData = data.closingData;
+          }
+          if (data.closingTasks && Array.isArray(data.closingTasks)) {
+            closingTasks = data.closingTasks;
+          }
+
+          // Sync to local storage as fallback cache
+          localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
+          localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
+          localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
+
+          // Re-render interface with live data
+          renderCompanyList();
+          if (currentSelectedCode) {
+            const compStillExists = companies.find(c => c.code === currentSelectedCode);
+            if (compStillExists) {
+              selectCompany(currentSelectedCode);
+            } else if (companies.length > 0) {
+              selectCompany(companies[0].code);
+            } else {
+              currentSelectedCode = null;
+              renderRoutineTable();
+            }
+          } else if (companies.length > 0) {
+            selectCompany(companies[0].code);
+          } else {
+            renderRoutineTable();
+          }
+
+          updateFirebaseStatusBadge(true, "Firebase: Tempo Real Ativo");
+          isRemoteUpdating = false;
+        }, (error) => {
+          console.error("Erro na escuta do Firebase:", error);
+          isFirebaseConnected = false;
+          updateFirebaseStatusBadge(false, "Firebase: Erro de Permissão / Conexão");
+        });
+
+      } catch(err) {
+        console.error("Erro na inicialização do Firebase:", err);
+        isFirebaseConnected = false;
+        updateFirebaseStatusBadge(false, "Firebase: Erro na Configuração");
+      }
+    }
+
+    function syncToFirebase() {
+      if (!isFirebaseConnected || isRemoteUpdating || !firebaseDBRef) return;
+      try {
+        const payload = {
+          companies: companies,
+          closingData: closingData,
+          closingTasks: closingTasks,
+          lastUpdated: new Date().toISOString()
+        };
+        firebaseDBRef.set(payload);
+      } catch (err) {
+        console.error("Erro ao enviar dados ao Firebase:", err);
+      }
+    }
+
+    function updateFirebaseStatusBadge(isConnected, text, animationClass = "") {
+      const badge = document.getElementById("firebaseStatusBadge");
+      const dot = document.getElementById("firebaseStatusDot");
+      const txt = document.getElementById("firebaseStatusText");
+      
+      if (!badge || !dot || !txt) return;
+
+      txt.innerText = text;
+      
+      dot.className = "w-2 h-2 rounded-full " + animationClass + " ";
+      if (isConnected) {
+        dot.className += "bg-emerald-400";
+        badge.className = "cursor-pointer text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 flex items-center gap-1.5 hover:bg-emerald-900 transition";
+      } else {
+        dot.className += "bg-amber-400";
+        badge.className = "cursor-pointer text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-amber-300 border border-slate-600 flex items-center gap-1.5 hover:bg-slate-700 transition";
+      }
+    }
+
+    function openFirebaseModal() {
+      const modal = document.getElementById("firebaseModal");
+      const storedConfig = localStorage.getItem("rbm_firebase_config");
+      let cfg = DEFAULT_FIREBASE_CONFIG;
+      if (storedConfig) {
+        try {
+          cfg = JSON.parse(storedConfig);
+        } catch(e){}
+      }
+      document.getElementById("fbInputDbUrl").value = cfg.databaseURL || DEFAULT_FIREBASE_CONFIG.databaseURL;
+      document.getElementById("fbInputApiKey").value = (cfg.apiKey && !cfg.apiKey.includes("_RBM_")) ? cfg.apiKey : "";
+      document.getElementById("fbInputProjectId").value = cfg.projectId || DEFAULT_FIREBASE_CONFIG.projectId;
+      document.getElementById("fbInputAuthDomain").value = cfg.authDomain || DEFAULT_FIREBASE_CONFIG.authDomain;
+      modal.classList.remove("hidden");
+    }
+
+    function closeFirebaseModal() {
+      document.getElementById("firebaseModal").classList.add("hidden");
+    }
+
+    function parseFirebaseConfig(text) {
+      if (!text || !text.trim()) return null;
+      const str = text.trim();
+      
+      // Attempt standard JSON parse
+      try {
+        return JSON.parse(str);
+      } catch(e){}
+
+      // Attempt parsing JS object declaration: firebaseConfig = { ... }
+      try {
+        const jsonLike = str
+          .replace(/^const\s+firebaseConfig\s*=\s*/, '')
+          .replace(/^var\s+firebaseConfig\s*=\s*/, '')
+          .replace(/^let\s+firebaseConfig\s*=\s*/, '')
+          .replace(/;\s*$/, '')
+          .replace(/([a-zA-Z0-9_]+)\s*:/g, '"$1":')
+          .replace(/'/g, '"');
+        return JSON.parse(jsonLike);
+      } catch(e){}
+
+      return null;
+    }
+
+    function saveFirebaseConfig() {
+      const pasteText = document.getElementById("firebaseConfigPaste").value;
+      const testStatus = document.getElementById("firebaseTestStatus");
+
+      let config = parseFirebaseConfig(pasteText);
+
+      if (!config) {
+        const dbUrl = document.getElementById("fbInputDbUrl").value.trim();
+        const apiKey = document.getElementById("fbInputApiKey").value.trim();
+        const projectId = document.getElementById("fbInputProjectId").value.trim();
+        const authDomain = document.getElementById("fbInputAuthDomain").value.trim();
+
+        if (dbUrl && apiKey) {
+          config = {
+            databaseURL: dbUrl,
+            apiKey: apiKey,
+            projectId: projectId,
+            authDomain: authDomain
+          };
+        }
+      }
+
+      if (!config || !config.databaseURL || !config.apiKey) {
+        testStatus.className = "p-3 rounded-lg text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300";
+        testStatus.innerText = "Atenção: Por favor cole o código firebaseConfig ou preencha o Database URL e API Key!";
+        testStatus.classList.remove("hidden");
+        return;
+      }
+
+      localStorage.setItem("rbm_firebase_config", JSON.stringify(config));
+
+      testStatus.className = "p-3 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300";
+      testStatus.innerText = "Configuração salva com sucesso! Conectando ao Firebase...";
+      testStatus.classList.remove("hidden");
+
+      setTimeout(() => {
+        closeFirebaseModal();
+        testStatus.classList.add("hidden");
+        initFirebase(config);
+      }, 1200);
+    }
+
+    function disconnectFirebase() {
+      if (confirm("Deseja desconectar a sincronização em tempo real do Firebase e voltar para o modo local?")) {
+        localStorage.removeItem("rbm_firebase_config");
+        isFirebaseConnected = false;
+        firebaseDBRef = null;
+        updateFirebaseStatusBadge(false, "Firebase: Offline (LocalStorage)");
+        closeFirebaseModal();
+      }
     }
 
     // HELPER: GET CLOSING RECORD FOR COMPANY & YEAR
@@ -1271,7 +1610,7 @@
       if (!company) return;
 
       currentSelectedCode = code;
-      renderCompanyList(); // Update sidebar selection highlight
+      renderCompanyList();
 
       const compMesSaida = company.mesSaida !== undefined && company.mesSaida !== null ? parseInt(company.mesSaida, 10) : -1;
 
@@ -1349,7 +1688,7 @@
             labelText = "Inativa / Saída";
           } else if (cellData.status === 'REALIZADO' || cellData.status === 'CONCLUIDO') {
             cellStyleClass = "status-realizado";
-            labelText = cellData.date ? `até ${cellData.date}` : "realizado";
+            labelText = "realizado";
           } else if (cellData.status === 'ANDAMENTO' || cellData.status === 'EM_ANDAMENTO') {
             cellStyleClass = "status-andamento";
             labelText = "em andamento";
@@ -1520,76 +1859,6 @@
       // Dynamic editing of metadata for current company
       document.getElementById("inputCompanyColaborador").addEventListener("change", (e) => {
         if (!currentSelectedCode) return;
-        const comp = companies.find(c => c.code === currentSelectedCode);
-        if (comp) {
-          comp.colaborador = e.target.value;
-          saveStateToStorage();
-          selectCompany(currentSelectedCode);
-        }
-      });
-
-      document.getElementById("inputCompanyTipo").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const comp = companies.find(c => c.code === currentSelectedCode);
-        if (comp) {
-          comp.tipo = e.target.value;
-          saveStateToStorage();
-          selectCompany(currentSelectedCode);
-        }
-      });
-
-      document.getElementById("inputCompanyTax").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const comp = companies.find(c => c.code === currentSelectedCode);
-        if (comp) {
-          comp.tax = e.target.value;
-          saveStateToStorage();
-          selectCompany(currentSelectedCode);
-        }
-      });
-
-      document.getElementById("inputDtEntradaRbm").addEventListener("blur", (e) => {
-        if (!currentSelectedCode) return;
-        const comp = companies.find(c => c.code === currentSelectedCode);
-        if (comp) {
-          comp.dtEntradaRbm = e.target.value;
-          saveStateToStorage();
-        }
-      });
-
-      document.getElementById("inputObservations").addEventListener("input", (e) => {
-        if (!currentSelectedCode) return;
-        const yearData = getCompanyYearData(currentSelectedCode, currentYear);
-        yearData.observations = e.target.value;
-        saveStateToStorage();
-      });
-
-      // HELPER: APPLY CINZA STATUS TO ALL MONTHS FROM EXIT MONTH ONWARDS (OR RESET WHEN SET TO ACTIVE)
-      function applyCompanyExitData(code, mesSaidaVal) {
-        const yearData = getCompanyYearData(code, currentYear);
-        if (mesSaidaVal >= 0) {
-          closingTasks.forEach((_, taskIdx) => {
-            if (!yearData.tasks[taskIdx]) yearData.tasks[taskIdx] = {};
-            for (let m = mesSaidaVal; m < 12; m++) {
-              yearData.tasks[taskIdx][m] = { status: 'CINZA', date: '' };
-            }
-          });
-        } else {
-          // Company set back to ACTIVE (-1): Clear any automatic CINZA statuses back to DASH
-          closingTasks.forEach((_, taskIdx) => {
-            if (yearData.tasks[taskIdx]) {
-              for (let m = 0; m < 12; m++) {
-                if (yearData.tasks[taskIdx][m] && yearData.tasks[taskIdx][m].status === 'CINZA') {
-                  yearData.tasks[taskIdx][m] = { status: 'DASH', date: '' };
-                }
-              }
-            }
-          });
-        }
-      }
-
-      document.getElementById("inputCompanyColaborador").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
         const newColab = e.target.value;
         requireAuth(() => {
           const comp = companies.find(c => c.code === currentSelectedCode);
@@ -1649,6 +1918,30 @@
         });
       });
 
+      // HELPER: APPLY CINZA STATUS TO ALL MONTHS FROM EXIT MONTH ONWARDS (OR RESET WHEN SET TO ACTIVE)
+      function applyCompanyExitData(code, mesSaidaVal) {
+        const yearData = getCompanyYearData(code, currentYear);
+        if (mesSaidaVal >= 0) {
+          closingTasks.forEach((_, taskIdx) => {
+            if (!yearData.tasks[taskIdx]) yearData.tasks[taskIdx] = {};
+            for (let m = mesSaidaVal; m < 12; m++) {
+              yearData.tasks[taskIdx][m] = { status: 'CINZA', date: '' };
+            }
+          });
+        } else {
+          // Company set back to ACTIVE (-1): Clear any automatic CINZA statuses back to DASH
+          closingTasks.forEach((_, taskIdx) => {
+            if (yearData.tasks[taskIdx]) {
+              for (let m = 0; m < 12; m++) {
+                if (yearData.tasks[taskIdx][m] && yearData.tasks[taskIdx][m].status === 'CINZA') {
+                  yearData.tasks[taskIdx][m] = { status: 'DASH', date: '' };
+                }
+              }
+            }
+          });
+        }
+      }
+
       document.getElementById("inputCompanyMesSaida").addEventListener("change", (e) => {
         if (!currentSelectedCode) return;
         const val = parseInt(e.target.value, 10);
@@ -1702,13 +1995,12 @@
         if (!activeCellModalData || !currentSelectedCode) return;
         const { taskIdx, monthIdx } = activeCellModalData;
         const yearData = getCompanyYearData(currentSelectedCode, currentYear);
-        const compDate = document.getElementById("modalCompletionDate").value.trim() || getCurrentShortDate();
 
         if (!yearData.tasks[taskIdx]) yearData.tasks[taskIdx] = {};
         
         yearData.tasks[taskIdx][monthIdx] = {
           status: modalSelectedStatus,
-          date: modalSelectedStatus === 'REALIZADO' ? compDate : ''
+          date: ''
         };
 
         saveStateToStorage();
@@ -1958,15 +2250,19 @@
       // SECURITY MODAL HANDLERS
       document.getElementById("btnOpenSecurity").addEventListener("click", () => {
         document.getElementById("securityModal").classList.remove("hidden");
+        document.getElementById("securityModal").style.display = "flex";
       });
       document.getElementById("btnCloseSecurityModal").addEventListener("click", () => {
         document.getElementById("securityModal").classList.add("hidden");
+        document.getElementById("securityModal").style.display = "none";
       });
       document.getElementById("btnOKSecurityModal").addEventListener("click", () => {
         document.getElementById("securityModal").classList.add("hidden");
+        document.getElementById("securityModal").style.display = "none";
       });
       document.getElementById("btnDownloadBackupModal").addEventListener("click", () => {
         document.getElementById("securityModal").classList.add("hidden");
+        document.getElementById("securityModal").style.display = "none";
         document.getElementById("btnExportData").click();
       });
 

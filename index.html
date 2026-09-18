@@ -1185,6 +1185,30 @@
       pendingAuthAction = null;
     }
 
+    function removeDatesFromClosingData() {
+      if (!closingData) return;
+      Object.keys(closingData).forEach(code => {
+        const compData = closingData[code];
+        if (compData) {
+          Object.keys(compData).forEach(yr => {
+            const yearObj = compData[yr];
+            if (yearObj && yearObj.tasks) {
+              Object.keys(yearObj.tasks).forEach(tIdx => {
+                const taskObj = yearObj.tasks[tIdx];
+                if (taskObj) {
+                  Object.keys(taskObj).forEach(mIdx => {
+                    if (taskObj[mIdx] && taskObj[mIdx].date) {
+                      taskObj[mIdx].date = "";
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+
     // STORAGE HANDLERS
     function loadStateFromStorage() {
       const storedCompanies = localStorage.getItem("rbm_closing_companies_v8") || localStorage.getItem("rbm_closing_companies_v7");
@@ -1213,6 +1237,7 @@
       if (storedClosing) {
         try {
           closingData = JSON.parse(storedClosing);
+          removeDatesFromClosingData();
         } catch(e) {
           closingData = {};
         }
@@ -1232,6 +1257,7 @@
     }
 
     function saveStateToStorage() {
+      removeDatesFromClosingData();
       localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
       localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
       localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
@@ -1303,6 +1329,7 @@
           }
           if (data.closingData && typeof data.closingData === 'object') {
             closingData = data.closingData;
+            removeDatesFromClosingData();
           }
           if (data.closingTasks && Array.isArray(data.closingTasks)) {
             closingTasks = data.closingTasks;

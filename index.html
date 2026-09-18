@@ -95,6 +95,10 @@
       font-weight: 700;
     }
     
+    .shadow-r {
+      box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.15);
+    }
+
     /* Print Styles */
     @media print {
       .no-print { display: none !important; }
@@ -107,36 +111,30 @@
 
   <!-- TOP HEADER BAR -->
   <header class="bg-brand-600 text-white shadow-md no-print border-b border-brand-700 sticky top-0 z-30">
-    <div class="max-w-[1700px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+    <div class="max-w-[1700px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
       
       <!-- LOGO / BRANDING -->
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow">
+        <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow flex-shrink-0">
           <i class="fa-solid fa-calculator"></i>
         </div>
         <div>
-          <h1 class="text-xl font-bold tracking-tight leading-tight flex items-center gap-2 flex-wrap">
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight leading-tight flex items-center gap-2 flex-wrap">
             Rotina de Fechamento Contábil
-            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/30 text-blue-200 border border-blue-400/30">RBM Contábil</span>
-            
-            <!-- FIREBASE LIVE STATUS BADGE -->
-            <span id="firebaseStatusBadge" onclick="openFirebaseModal()" class="cursor-pointer text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-amber-300 border border-slate-600 flex items-center gap-1.5 hover:bg-slate-700 transition" title="Clique para configurar o Firebase em tempo real">
-              <span id="firebaseStatusDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-              <span id="firebaseStatusText">Firebase: Offline</span>
-            </span>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/30 text-blue-200 border border-blue-400/30">RBM Contábil</span>
           </h1>
-          <p class="text-xs text-slate-300">Gestão de Fechamento Contábil do Dia a Dia do Escritório</p>
+          <p class="text-[11px] sm:text-xs text-slate-300">Gestão de Fechamento Contábil do Dia a Dia do Escritório</p>
         </div>
       </div>
 
       <!-- SEARCH BAR DIRECT LOOKUP BY CODE OR NAME -->
-      <div class="flex-1 max-w-md relative">
+      <div class="w-full md:w-auto flex-1 max-w-md relative min-w-[240px]">
         <div class="relative">
           <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
             <i class="fa-solid fa-magnifying-glass"></i>
           </span>
           <input type="text" id="topSearchInput" placeholder="Digite o CÓDIGO ou Nome da empresa..." 
-            class="w-full pl-9 pr-24 py-2 bg-brand-700/80 text-white placeholder-slate-300 text-sm rounded-lg border border-brand-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-brand-800 transition">
+            class="w-full pl-9 pr-24 py-2 bg-brand-700/80 text-white placeholder-slate-300 text-xs sm:text-sm rounded-lg border border-brand-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-brand-800 transition">
           <button id="btnQuickLookup" class="absolute right-1 top-1 bottom-1 px-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-md transition flex items-center gap-1">
             <span>Ir</span>
             <i class="fa-solid fa-arrow-right"></i>
@@ -147,37 +145,33 @@
       </div>
 
       <!-- ACTION BUTTONS -->
-      <div class="flex items-center space-x-2">
-        <button id="btnOpenFirebase" onclick="openFirebaseModal()" class="px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold rounded-lg shadow border border-orange-400 transition flex items-center gap-1.5" title="Configurar Sincronização em Tempo Real (Firebase)">
-          <i class="fa-solid fa-fire text-amber-300"></i>
-          <span class="hidden sm:inline">Firebase ao Vivo</span>
-        </button>
-        <button id="btnNewCompany" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1.5">
+      <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <button id="btnNewCompany" class="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1.5">
           <i class="fa-solid fa-plus"></i>
           <span>Nova Empresa</span>
         </button>
-        <button id="btnEditTasksModal" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1.5" title="Editar Nomes das Tarefas">
+        <button id="btnEditTasksModal" class="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1.5" title="Editar Nomes das Tarefas">
           <i class="fa-solid fa-list-check"></i>
           <span class="hidden sm:inline">Editar Tarefas</span>
         </button>
-        <button id="btnExportData" class="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow border border-amber-400 transition flex items-center gap-1.5" title="Baixar Backup de Segurança JSON">
+        <button id="btnExportData" class="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow border border-amber-400 transition flex items-center gap-1.5" title="Baixar Backup de Segurança JSON">
           <i class="fa-solid fa-download"></i>
-          <span>Baixar Backup</span>
+          <span>Backup</span>
         </button>
-        <button id="btnImportData" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg border border-slate-500 transition flex items-center gap-1.5" title="Importar Backup JSON">
+        <button id="btnImportData" class="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg border border-slate-500 transition flex items-center gap-1.5" title="Importar Backup JSON">
           <i class="fa-solid fa-upload"></i>
           <span class="hidden sm:inline">Importar</span>
         </button>
         <input type="file" id="importFileInput" class="hidden" accept=".json">
-        <button id="btnOpenSecurity" class="px-3 py-2 bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold rounded-lg border border-teal-500 transition flex items-center gap-1.5" title="Guia de Segurança dos Dados">
+        <button id="btnOpenSecurity" class="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold rounded-lg border border-teal-500 transition flex items-center gap-1.5" title="Guia de Segurança dos Dados">
           <i class="fa-solid fa-shield-halved text-emerald-300"></i>
           <span class="hidden sm:inline">Segurança</span>
         </button>
-        <button id="btnLockApp" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg border border-slate-500 transition flex items-center gap-1.5" title="Bloquear Acesso">
+        <button id="btnLockApp" class="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg border border-slate-500 transition flex items-center gap-1.5" title="Bloquear Acesso">
           <i class="fa-solid fa-lock text-amber-400"></i>
           <span class="hidden sm:inline">Bloquear</span>
         </button>
-        <button onclick="window.print()" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg border border-slate-500 transition flex items-center gap-1.5" title="Imprimir">
+        <button onclick="window.print()" class="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg border border-slate-500 transition flex items-center gap-1.5" title="Imprimir">
           <i class="fa-solid fa-print"></i>
           <span class="hidden sm:inline">Imprimir</span>
         </button>
@@ -188,8 +182,8 @@
 
   <!-- DASHBOARD STATS BAR - FOCUSED ON SELECTED COMPANY -->
   <section class="bg-white border-b border-slate-200 shadow-sm no-print">
-    <div class="max-w-[1700px] mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-4 text-xs">
-      <div class="flex items-center space-x-6">
+    <div class="max-w-[1700px] mx-auto px-4 py-2.5 flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-3 text-xs">
+      <div class="flex flex-wrap items-center gap-4">
         <div class="flex items-center space-x-2">
           <span class="text-slate-500">Total Empresas:</span>
           <span id="statTotalCompanies" class="font-bold text-slate-800 text-sm bg-slate-100 px-2 py-0.5 rounded">0</span>
@@ -218,10 +212,10 @@
       </div>
 
       <!-- STATUS SUMMARY FOR THE SELECTED COMPANY ONLY -->
-      <div class="flex items-center space-x-4 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+      <div class="w-full sm:w-auto flex flex-wrap items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
         <div class="flex items-center space-x-1 font-semibold text-slate-700">
           <i class="fa-solid fa-chart-pie text-brand-600 mr-1"></i>
-          <span>Progresso da Empresa Selecionada:</span>
+          <span>Progresso da Empresa:</span>
         </div>
 
         <div class="flex items-center space-x-1.5">
@@ -241,7 +235,7 @@
         </div>
 
         <div class="flex items-center space-x-2 pl-2 border-l border-slate-300">
-          <div class="w-24 bg-slate-200 rounded-full h-2.5 overflow-hidden">
+          <div class="w-20 sm:w-24 bg-slate-200 rounded-full h-2.5 overflow-hidden">
             <div id="statProgressBar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
           </div>
           <span id="statProgressText" class="font-bold text-slate-800">0%</span>
@@ -250,11 +244,23 @@
     </div>
   </section>
 
+  <!-- MOBILE VIEW TABS (VISIBLE ONLY ON MOBILE/TABLET SCREENS < 1024px) -->
+  <div class="lg:hidden bg-slate-200 p-2 no-print border-b border-slate-300 flex justify-center gap-2 sticky top-[61px] z-20 shadow-sm">
+    <button id="tabBtnCompanies" onclick="switchMobileTab('companies')" class="flex-1 py-2 px-3 text-xs font-bold rounded-lg bg-brand-600 text-white shadow transition flex items-center justify-center gap-2">
+      <i class="fa-solid fa-building"></i>
+      <span>1. Lista de Empresas</span>
+    </button>
+    <button id="tabBtnRoutine" onclick="switchMobileTab('routine')" class="flex-1 py-2 px-3 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-300 transition flex items-center justify-center gap-2">
+      <i class="fa-solid fa-list-check"></i>
+      <span>2. Fechamento Contábil</span>
+    </button>
+  </div>
+
   <!-- MAIN APP CONTAINER (SPLIT VIEW) -->
-  <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-5">
+  <main class="flex-1 max-w-[1700px] w-full mx-auto p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-5">
     
     <!-- LEFT SIDEBAR: COMPANY LIST & FILTERS -->
-    <aside class="lg:col-span-4 xl:col-span-3 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-[calc(100vh-160px)] sticky top-24 no-print">
+    <aside id="sidebarCompany" class="lg:col-span-4 xl:col-span-3 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-[calc(100vh-220px)] lg:h-[calc(100vh-160px)] lg:sticky lg:top-24 no-print">
       
       <!-- SIDEBAR FILTERS HEADER -->
       <div class="p-3.5 bg-slate-50 border-b border-slate-200 space-y-2.5">
@@ -326,10 +332,10 @@
     </aside>
 
     <!-- RIGHT MAIN PANEL: COMPANY CLOSING ROUTINE DETAIL -->
-    <section class="lg:col-span-8 xl:col-span-9 flex flex-col gap-4 print-full">
+    <section id="sectionRoutine" class="hidden lg:flex lg:col-span-8 xl:col-span-9 flex-col gap-4 print-full">
       
       <!-- COMPANY HEADER & CONTROLS -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4">
         
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-3">
           
@@ -338,7 +344,7 @@
               CÓD: --
             </span>
             <div>
-              <h2 id="displayCompanyName" class="text-xl font-bold text-slate-800 leading-tight">
+              <h2 id="displayCompanyName" class="text-lg sm:text-xl font-bold text-slate-800 leading-tight">
                 Selecione uma Empresa
               </h2>
               <div class="flex items-center gap-2 mt-0.5 text-xs text-slate-500 flex-wrap">
@@ -355,8 +361,8 @@
           </div>
 
           <!-- EDIT / DELETE / YEAR CONTROLS -->
-          <div class="flex items-center space-x-3 no-print">
-            <div class="flex items-center space-x-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+          <div class="flex items-center space-x-2 sm:space-x-3 no-print flex-wrap gap-y-2">
+            <div class="flex items-center space-x-1.5 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-200">
               <label class="text-xs font-semibold text-slate-600">Exercício:</label>
               <input type="number" id="inputYear" value="2026" min="2020" max="2035" 
                 class="w-16 text-xs font-bold text-center bg-white border border-slate-300 rounded py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500">
@@ -464,36 +470,36 @@
           </div>
           
           <!-- LEGEND & HELPER -->
-          <div class="flex items-center space-x-3 text-[11px] no-print">
+          <div class="flex flex-wrap items-center gap-3 text-[11px] no-print">
             <span class="flex items-center gap-1">
               <span class="w-3 h-3 rounded bg-slate-100 border border-slate-300 text-[10px] text-center font-bold">—</span>
-              <span class="text-slate-500">Tracinho (Sem ação)</span>
+              <span class="text-slate-500">Tracinho</span>
             </span>
             <span class="flex items-center gap-1">
               <span class="w-3 h-3 rounded bg-red-100 border border-red-300"></span>
-              <span class="text-red-700 font-bold">Pendente (Vermelho)</span>
+              <span class="text-red-700 font-bold">Pendente</span>
             </span>
             <span class="flex items-center gap-1">
               <span class="w-3 h-3 rounded bg-amber-100 border border-amber-300"></span>
-              <span class="text-amber-800 font-bold">Em Andamento (Amarelo)</span>
+              <span class="text-amber-800 font-bold">Em Andamento</span>
             </span>
             <span class="flex items-center gap-1">
               <span class="w-3 h-3 rounded bg-emerald-100 border border-emerald-300"></span>
-              <span class="text-emerald-700 font-bold">Concluído (Verde)</span>
+              <span class="text-emerald-700 font-bold">Concluído</span>
             </span>
             <span class="flex items-center gap-1">
               <span class="w-3 h-3 rounded bg-slate-200 border border-slate-300"></span>
-              <span class="text-slate-700 font-bold">⚪ Inativa / Saída (Cinza)</span>
+              <span class="text-slate-700 font-bold">⚪ Saída (Cinza)</span>
             </span>
           </div>
         </div>
 
         <!-- TABLE GRID -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse min-w-[1000px]">
+          <table class="w-full text-left border-collapse min-w-[950px]">
             <thead>
               <tr class="bg-brand-600 text-white text-[11px] uppercase tracking-wider font-semibold border-b border-brand-700">
-                <th class="py-2.5 px-3 min-w-[280px] w-[350px] sticky left-0 bg-brand-600 z-10 shadow-r">Descrição das Tarefas / Etapas</th>
+                <th class="py-2.5 px-3 min-w-[220px] sm:min-w-[280px] w-[350px] sticky left-0 bg-brand-600 z-10 shadow-r">Descrição das Tarefas / Etapas</th>
                 <th class="py-2.5 px-1 text-center w-20">Jan</th>
                 <th class="py-2.5 px-1 text-center w-20">Fev</th>
                 <th class="py-2.5 px-1 text-center w-20">Mar</th>
@@ -521,8 +527,8 @@
   </main>
 
   <!-- FIREBASE CONFIGURATION MODAL -->
-  <div id="firebaseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full border border-slate-200 overflow-hidden transform transition-all">
+  <div id="firebaseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full border border-slate-200 overflow-hidden transform transition-all max-h-[90vh] flex flex-col">
       <div class="bg-slate-800 text-white p-4 flex items-center justify-between">
         <div class="flex items-center space-x-2">
           <i class="fa-solid fa-fire text-amber-400 text-lg"></i>
@@ -531,7 +537,7 @@
         <button id="btnCloseFirebaseModal" onclick="closeFirebaseModal()" class="text-slate-400 hover:text-white transition text-xl">&times;</button>
       </div>
 
-      <div class="p-5 space-y-4 max-h-[80vh] overflow-y-auto text-xs text-slate-600">
+      <div class="p-4 sm:p-5 space-y-4 overflow-y-auto text-xs text-slate-600 flex-1">
         <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-xs leading-relaxed space-y-1">
           <p class="font-bold flex items-center gap-1.5">
             <i class="fa-solid fa-circle-info text-amber-600"></i>
@@ -602,8 +608,8 @@
   </div>
 
   <!-- CELL EDIT POPUP MODAL -->
-  <div id="cellModal" style="display: none;" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-150">
+  <div id="cellModal" style="display: none;" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 p-3 sm:p-4">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-150 max-h-[90vh] flex flex-col">
       
       <div class="bg-brand-600 text-white p-3.5 flex items-center justify-between">
         <h3 class="font-bold text-sm flex items-center gap-2">
@@ -613,7 +619,7 @@
         <button id="btnCloseCellModal" class="text-slate-300 hover:text-white text-lg">&times;</button>
       </div>
 
-      <div class="p-4 space-y-3">
+      <div class="p-4 space-y-3 overflow-y-auto flex-1">
         <div>
           <p id="modalTaskName" class="font-bold text-slate-800 text-xs mb-1"></p>
           <p id="modalMonthName" class="text-xs text-slate-500 font-medium"></p>
@@ -685,8 +691,8 @@
   </div>
 
   <!-- COMPANY ADD / EDIT MODAL -->
-  <div id="companyModal" style="display: none;" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+  <div id="companyModal" style="display: none;" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 p-3 sm:p-4">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col">
       
       <div class="bg-brand-600 text-white p-4 flex items-center justify-between">
         <h3 id="companyModalTitle" class="font-bold text-sm flex items-center gap-2">
@@ -696,7 +702,7 @@
         <button id="btnCloseCompanyModal" class="text-slate-300 hover:text-white text-xl">&times;</button>
       </div>
 
-      <form id="companyForm" class="p-4 space-y-3 text-xs">
+      <form id="companyForm" class="p-4 space-y-3 text-xs overflow-y-auto flex-1">
         <input type="hidden" id="modalCompanyOriginalCode">
         
         <div>
@@ -777,7 +783,7 @@
   </div>
 
   <!-- EDIT TASKS MODAL -->
-  <div id="tasksModal" style="display: none;" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 p-4">
+  <div id="tasksModal" style="display: none;" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 p-3 sm:p-4">
     <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
       
       <div class="bg-indigo-700 text-white p-4 flex items-center justify-between">
@@ -804,7 +810,7 @@
   </div>
 
   <!-- SECURITY & BACKUP GUIDE MODAL -->
-  <div id="securityModal" style="display: none;" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm items-center justify-center z-50 p-4">
+  <div id="securityModal" style="display: none;" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm items-center justify-center z-50 p-3 sm:p-4">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
       
       <div class="bg-emerald-700 text-white p-4 flex items-center justify-between">
@@ -815,7 +821,7 @@
         <button id="btnCloseSecurityModal" class="text-slate-300 hover:text-white text-xl">&times;</button>
       </div>
 
-      <div class="p-5 flex-1 overflow-y-auto space-y-4 text-xs text-slate-700 leading-relaxed">
+      <div class="p-4 sm:p-5 flex-1 overflow-y-auto space-y-4 text-xs text-slate-700 leading-relaxed">
         <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start gap-3">
           <i class="fa-solid fa-cloud-arrow-up text-emerald-600 text-xl mt-0.5"></i>
           <div>
@@ -835,7 +841,7 @@
           <div class="space-y-2">
             <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
               <strong class="text-blue-800 font-bold block mb-1">1. Salve um Backup com 1 Clique:</strong>
-              Clique no botão amarelo <span class="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded">💾 Baixar Backup</span> no topo da tela. Um arquivo de cópia completo será baixado para o seu computador.
+              Clique no botão amarelo <span class="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded">💾 Backup</span> no topo da tela. Um arquivo de cópia completo será baixado para o seu computador.
             </div>
 
             <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
@@ -864,8 +870,8 @@
   </div>
 
   <!-- PASSWORD LOCK OVERLAY (ONLY SHOWN WHEN ATTEMPTING AN EDIT) -->
-  <div id="passwordLockOverlay" style="display: none;" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 text-center space-y-5 relative">
+  <div id="passwordLockOverlay" style="display: none;" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-5 sm:p-6 text-center space-y-5 relative">
       
       <button type="button" id="btnClosePasswordModal" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold p-1">&times;</button>
 
@@ -943,6 +949,34 @@
     let closingTasks = [...DEFAULT_CLOSING_TASKS];
 
     const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+    // MOBILE TAB SWITCHING LOGIC (< 1024px)
+    function switchMobileTab(tab) {
+      const sidebar = document.getElementById("sidebarCompany");
+      const routine = document.getElementById("sectionRoutine");
+      const btnComp = document.getElementById("tabBtnCompanies");
+      const btnRout = document.getElementById("tabBtnRoutine");
+
+      if (!sidebar || !routine || !btnComp || !btnRout) return;
+
+      if (tab === 'companies') {
+        sidebar.classList.remove("hidden");
+        sidebar.classList.add("flex");
+        routine.classList.add("hidden");
+        routine.classList.remove("flex");
+
+        btnComp.className = "flex-1 py-2 px-3 text-xs font-bold rounded-lg bg-brand-600 text-white shadow transition flex items-center justify-center gap-2";
+        btnRout.className = "flex-1 py-2 px-3 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-300 transition flex items-center justify-center gap-2";
+      } else {
+        sidebar.classList.add("hidden");
+        sidebar.classList.remove("flex");
+        routine.classList.remove("hidden");
+        routine.classList.add("flex");
+
+        btnRout.className = "flex-1 py-2 px-3 text-xs font-bold rounded-lg bg-brand-600 text-white shadow transition flex items-center justify-center gap-2";
+        btnComp.className = "flex-1 py-2 px-3 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-300 transition flex items-center justify-center gap-2";
+      }
+    }
 
     // MAPPER FOR INITIAL SN / LP ENQUADRAMENTO TO NEW REGIME NAMES
     function normalizeTaxName(tax) {
@@ -1290,7 +1324,6 @@
 
     function initFirebase(config) {
       if (!config || !config.databaseURL) {
-        updateFirebaseStatusBadge(false, "Firebase: Dados incompletos");
         return;
       }
 
@@ -1307,7 +1340,6 @@
         }
         
         firebaseDBRef = firebase.database().ref('rbm_fechamento');
-        updateFirebaseStatusBadge(false, "Firebase: Conectando...", "animate-pulse");
 
         // Realtime Listener
         firebaseDBRef.on('value', (snapshot) => {
@@ -1315,8 +1347,7 @@
           const data = snapshot.val();
 
           if (!data) {
-            // Firebase DB is empty: Upload current local data to Firebase (Preserves all local companies/data!)
-            updateFirebaseStatusBadge(true, "Firebase: Enviando Dados Iniciais...");
+            // Firebase DB is empty: Upload current local data to Firebase
             syncToFirebase();
             return;
           }
@@ -1358,18 +1389,15 @@
             renderRoutineTable();
           }
 
-          updateFirebaseStatusBadge(true, "Firebase: Tempo Real Ativo");
           isRemoteUpdating = false;
         }, (error) => {
           console.error("Erro na escuta do Firebase:", error);
           isFirebaseConnected = false;
-          updateFirebaseStatusBadge(false, "Firebase: Erro de Permissão / Conexão");
         });
 
       } catch(err) {
         console.error("Erro na inicialização do Firebase:", err);
         isFirebaseConnected = false;
-        updateFirebaseStatusBadge(false, "Firebase: Erro na Configuração");
       }
     }
 
@@ -1385,25 +1413,6 @@
         firebaseDBRef.set(payload);
       } catch (err) {
         console.error("Erro ao enviar dados ao Firebase:", err);
-      }
-    }
-
-    function updateFirebaseStatusBadge(isConnected, text, animationClass = "") {
-      const badge = document.getElementById("firebaseStatusBadge");
-      const dot = document.getElementById("firebaseStatusDot");
-      const txt = document.getElementById("firebaseStatusText");
-      
-      if (!badge || !dot || !txt) return;
-
-      txt.innerText = text;
-      
-      dot.className = "w-2 h-2 rounded-full " + animationClass + " ";
-      if (isConnected) {
-        dot.className += "bg-emerald-400";
-        badge.className = "cursor-pointer text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 flex items-center gap-1.5 hover:bg-emerald-900 transition";
-      } else {
-        dot.className += "bg-amber-400";
-        badge.className = "cursor-pointer text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-amber-300 border border-slate-600 flex items-center gap-1.5 hover:bg-slate-700 transition";
       }
     }
 
@@ -1431,12 +1440,10 @@
       if (!text || !text.trim()) return null;
       const str = text.trim();
       
-      // Attempt standard JSON parse
       try {
         return JSON.parse(str);
       } catch(e){}
 
-      // Attempt parsing JS object declaration: firebaseConfig = { ... }
       try {
         const jsonLike = str
           .replace(/^const\s+firebaseConfig\s*=\s*/, '')
@@ -1498,14 +1505,15 @@
         localStorage.removeItem("rbm_firebase_config");
         isFirebaseConnected = false;
         firebaseDBRef = null;
-        updateFirebaseStatusBadge(false, "Firebase: Offline (LocalStorage)");
         closeFirebaseModal();
       }
     }
 
     // HELPER: GET CLOSING RECORD FOR COMPANY & YEAR
     function getCompanyYearData(code, year) {
-      if (!closingData[code]) closingData[code] = {};
+      if (!closingData[code]) {
+        closingData[code] = {};
+      }
       if (!closingData[code][year]) {
         closingData[code][year] = {
           observations: "",
@@ -1667,6 +1675,11 @@
 
       // Render Routine Matrix & Stats for this specific company
       renderRoutineTable();
+
+      // On mobile screens (< 1024px), automatically switch to the routine checklist tab when a company is selected
+      if (window.innerWidth < 1024) {
+        switchMobileTab('routine');
+      }
     }
 
     // RENDER CHECKLIST MATRIX TABLE
@@ -1730,7 +1743,7 @@
 
           html += `
             <td onclick="openCellModal(${taskIdx}, ${monthIdx})" 
-              class="py-1.5 px-1 text-center font-bold text-[10px] grid-cell ${cellStyleClass} border-r border-slate-100">
+              class="py-2 px-1 text-center font-bold text-[10px] grid-cell ${cellStyleClass} border-r border-slate-100">
               ${labelText}
             </td>`;
         }

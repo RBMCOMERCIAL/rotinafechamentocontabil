@@ -1285,6 +1285,7 @@
         try {
           companies = JSON.parse(storedCompanies);
           // Normalize tax names and ensure pre-existing companies have tipo & mesSaida & updated colaborador defaults
+          const existingCodes = new Set(companies.map(c => String(c.code)));
           companies.forEach(c => { 
             c.tax = normalizeTaxName(c.tax);
             if (!c.tipo || c.tipo.trim() === "" || c.tipo === "Sem Tipo") {
@@ -1295,6 +1296,17 @@
             }
             if (ONVIO_RESPONSAVEIS[c.code]) {
               c.colaborador = ONVIO_RESPONSAVEIS[c.code];
+            }
+          });
+
+          // Merge missing companies from INITIAL_COMPANIES into companies
+          INITIAL_COMPANIES.forEach(initC => {
+            if (!existingCodes.has(String(initC.code))) {
+              const copy = JSON.parse(JSON.stringify(initC));
+              if (ONVIO_RESPONSAVEIS[copy.code]) {
+                copy.colaborador = ONVIO_RESPONSAVEIS[copy.code];
+              }
+              companies.push(copy);
             }
           });
         } catch(e) {

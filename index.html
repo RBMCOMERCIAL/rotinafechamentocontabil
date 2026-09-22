@@ -277,7 +277,12 @@
             <i class="fa-solid fa-building text-brand-600"></i>
             Base de Empresas
           </h2>
-          <span id="companyCountBadge" class="text-xs bg-slate-200 text-slate-700 font-semibold px-2 py-0.5 rounded-full">0</span>
+          <div class="flex items-center gap-1.5">
+            <button onclick="resetCompanyFilters()" class="text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded border border-blue-200 transition shadow-xs" title="Limpar todos os filtros para visualizar as 144 empresas">
+              Ver Todas
+            </button>
+            <span id="companyCountBadge" class="text-xs bg-slate-200 text-slate-700 font-semibold px-2 py-0.5 rounded-full">0</span>
+          </div>
         </div>
 
         <!-- SEARCH FILTER -->
@@ -1606,7 +1611,86 @@
       renderCompanyList();
     }
 
-    // REALTIME CLOUD SYNC (FIREBASE REALTIME DB - ISOLATED NODE)
+    function restoreInitialCompanies() {
+      companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+      saveStateToStorage();
+      resetCompanyFilters();
+      if (companies.length > 0) selectCompany(companies[0].code);
+    }
+
+    // RENDER COMPANY LIST IN SIDEBAR
+    function renderCompanyList() {
+      const listContainer = document.getElementById("companyList");
+      const searchInp = document.getElementById("sideSearchInput");
+      const searchVal = (searchInp ? searchInp.value : "").toLowerCase().trim();
+      const colabFilter = document.getElementById("filterColaborador").value;
+      const taxFilter = document.getElementById("filterEnquadramento").value;
+      const statusSaidaFilter = document.getElementById("filterStatusSaida").value;
+
+      if (!Array.isArray(companies) || companies.length === 0) {
+        companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+      }
+
+      const filtered = companies.filter(c => {
+        if (!c) return false;
+        const codeStr = String(c.code || "");
+        const nameStr = String(c.name || "").toLowerCase();
+        const matchesSearch = !searchVal || codeStr.toLowerCase().includes(searchVal) || nameStr.includes(searchVal);
+        
+        let matchesColab = true;
+        if (colabFilter === "Sem Colaborador") {
+          matchesColab = !c.colaborador || c.colaborador.trim() === "";
+        } else if (colabFilter) {
+          matchesColab = c.colaborador === colabFilter;
+        }
+
+        let matchesTax = true;
+        if (taxFilter) {
+          matchesTax = c.tax === taxFilter;
+        }
+
+        let matchesStatusSaida = true;
+        const compMesSaida = c.mesSaida !== undefined && c.mesSaida !== null ? parseInt(c.mesSaida, 10) : -1;
+        if (statusSaidaFilter === "Ativas") {
+          matchesStatusSaida = compMesSaida < 0;
+        } else if (statusSaidaFilter === "Saidas") {
+          matchesStatusSaida = compMesSaida >= 0;
+        }
+
+        return matchesSearch && matchesColab && matchesTax && matchesStatusSaida;
+      });
+
+      document.getElementById("companyCountBadge").innerText = companies.length;
+      document.getElementById("statTotalCompanies").innerText = companies.length;
+      document.getElementById("statFilteredCompanies").innerText = filtered.length;
+
+      if (filtered.length === 0) {
+        if (companies.length > 0) {
+          listContainer.innerHTML = `
+            <div class="p-4 m-2 text-center bg-blue-50/90 rounded-xl border border-blue-200 space-y-3 shadow-xs">
+              <i class="fa-solid fa-filter text-3xl text-blue-500"></i>
+              <div>
+                <h4 class="font-extrabold text-blue-950 text-xs">Filtro Ativo na Busca!</h4>
+                <p class="text-[11px] text-blue-800 mt-1">Todas as <strong>${companies.length} empresas</strong> continuam gravadas no sistema, mas foram ocultadas pelos filtros selecionados.</p>
+              </div>
+              <button onclick="resetCompanyFilters()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-lg text-xs transition shadow-md flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span>MOSTRAR TODAS AS ${companies.length} EMPRESAS</span>
+              </button>
+            </div>`;
+        } else {
+          listContainer.innerHTML = `
+            <div class="p-4 m-2 text-center bg-amber-50 rounded-xl border border-amber-200 space-y-3 shadow-xs">
+              <i class="fa-solid fa-triangle-exclamation text-3xl text-amber-500"></i>
+              <p class="font-bold text-amber-900 text-xs">Nenhuma empresa carregada.</p>
+              <button onclick="restoreInitialCompanies()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-lg text-xs transition shadow-md flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-cloud-arrow-down"></i>
+                <span>RESTAURAR 144 EMPRESAS DA RBM</span>
+              </button>
+            </div>`;
+        }
+        return;
+      }
     let cloudDb = null;
     let isRemoteUpdate = false;
     const FIREBASE_NODE_PATH = "rotina_fechamento_contabil_live";
@@ -1758,17 +1842,6 @@
         console.log("Local fallback mode active:", e);
         updateCloudStatusBadge('error', 'Modo offline ativo');
       }
-    }| !Array.isArray(companies) || companies.length === 0) {
-              companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
-              renderCompanyList();
-            }
-            updateCloudStatusBadge('error', 'Sem permissão ou offline');
-          });
-        }
-      } catch(e) {
-        console.log("Local fallback mode active:", e);
-        updateCloudStatusBadge('error', 'Modo offline ativo');
-      }
     }
 
     function syncToCloud() {
@@ -1880,86 +1953,6 @@
       return yrData;
     }
 
-    // RENDER COMPANY LIST IN SIDEBAR
-        function renderCompanyList() {
-      const listContainer = document.getElementById("companyList");
-      const searchVal = document.getElementById("sideSearchInput").value.toLowerCase().trim();
-      const colabFilter = document.getElementById("filterColaborador").value;
-      const taxFilter = document.getElementById("filterEnquadramento").value;
-      const statusSaidaFilter = document.getElementById("filterStatusSaida").value;
-
-      const filtered = companies.filter(c => {
-        const codeStr = String(c.code);
-        const matchesSearch = codeStr.toLowerCase().includes(searchVal) || c.name.toLowerCase().includes(searchVal);
-        
-        let matchesColab = true;
-        if (colabFilter === "Sem Colaborador") {
-          matchesColab = !c.colaborador || c.colaborador.trim() === "";
-        } else if (colabFilter) {
-          matchesColab = c.colaborador === colabFilter;
-        }
-
-        let matchesTax = true;
-        if (taxFilter) {
-          matchesTax = c.tax === taxFilter;
-        }
-
-        let matchesStatusSaida = true;
-        const compMesSaida = c.mesSaida !== undefined && c.mesSaida !== null ? parseInt(c.mesSaida, 10) : -1;
-        if (statusSaidaFilter === "Ativas") {
-          matchesStatusSaida = compMesSaida < 0;
-        } else if (statusSaidaFilter === "Saidas") {
-          matchesStatusSaida = compMesSaida >= 0;
-        }
-
-        return matchesSearch && matchesColab && matchesTax && matchesStatusSaida;
-      });
-
-      document.getElementById("companyCountBadge").innerText = companies.length;
-      document.getElementById("statTotalCompanies").innerText = companies.length;
-      document.getElementById("statFilteredCompanies").innerText = filtered.length;
-
-      if (filtered.length === 0) {
-        listContainer.innerHTML = `
-          <div class="p-6 text-center text-slate-400 text-xs space-y-2">
-            <i class="fa-solid fa-folder-open text-3xl mb-1 text-slate-300"></i>
-            <p class="font-semibold text-slate-600">Nenhuma empresa encontrada com os filtros atuais.</p>
-            <button onclick="resetCompanyFilters()" class="px-3 py-1.5 bg-blue-600 text-white font-bold rounded-lg text-xs hover:bg-blue-500 transition shadow-xs">
-              <i class="fa-solid fa-filter-circle-xmark mr-1"></i>Limpar Filtros de Busca
-            </button>
-          </div>`;
-        return;
-      }
-
-      listContainer.innerHTML = filtered.map(c => {
-        const codeStr = String(c.code);
-        const isSelected = codeStr === String(currentSelectedCode);
-        const compMesSaida = c.mesSaida !== undefined && c.mesSaida !== null ? parseInt(c.mesSaida, 10) : -1;
-        const isExited = compMesSaida >= 0;
-
-        const colabDisplay = c.colaborador ? `<span class="text-blue-700 font-bold">${c.colaborador}</span>` : '<span class="text-amber-600 font-semibold bg-amber-50 px-1 rounded border border-amber-200">Pendente Atribuição</span>';
-
-        return `
-          <div onclick="selectCompany('${codeStr}')" 
-            class="p-2.5 rounded-lg border transition cursor-pointer flex items-center justify-between gap-2 ${isSelected ? 'bg-blue-50 border-blue-500 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'}">
-            <div class="flex items-center gap-2.5 min-w-0">
-              <span class="w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}">
-                ${codeStr}
-              </span>
-              <div class="min-w-0">
-                <h4 class="font-semibold text-xs text-slate-800 truncate ${isExited ? 'line-through text-slate-400' : ''}">${c.name}</h4>
-                <div class="text-[10px] text-slate-500 flex items-center gap-1.5 flex-wrap">
-                  <span>Resp: ${colabDisplay}</span>
-                </div>
-              </div>
-            </div>
-            <div class="shrink-0 text-right">
-              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">
-                ${c.tax === "Simples Nacional Puro" ? "SN Puro" : c.tax === "Simples Nacional Híbrido" ? "SN Híbrido" : c.tax || "SN Puro"}
-              </span>
-            </div>
-          </div>`;
-      }).join('');
     }
 
     function getShortTaxName(tax) {
@@ -2078,10 +2071,26 @@
             cellStyleClass = "status-pendente";
             labelText = "pendente";
           } else {
-            // Default Tracinho (Dash / Blank)
             cellStyleClass = "status-dash";
             labelText = "—";
-           // OPEN CELL EDIT MODAL (PROTECTED BY PASS)
+          }
+
+          const dateDisplay = cellData.date ? `<span class="text-[9px] block text-slate-400 font-normal mt-0.5">${cellData.date}</span>` : "";
+
+          html += `
+            <td onclick="openCellModal(${taskIdx}, ${monthIdx})" 
+              class="py-2 px-1 text-center font-bold text-[11px] grid-cell ${cellStyleClass} border-r border-slate-200">
+              <div class="flex flex-col items-center justify-center">
+                <span>${labelText}</span>
+                ${dateDisplay}
+              </div>
+            </td>`;
+        }
+        html += `</tr>`;
+      });
+
+      tbody.innerHTML = html;
+    }
     function openCellModal(taskIdx, monthIdx) {
       if (!currentSelectedCode) return;
       requireAuth(() => {

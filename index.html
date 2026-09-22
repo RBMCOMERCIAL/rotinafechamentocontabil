@@ -97,6 +97,10 @@
       body { background: white !important; color: black !important; }
     }
   </style>
+  <!-- Firebase Realtime Cloud Sync -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 antialiased min-h-screen flex flex-col">
 
@@ -468,7 +472,7 @@
             </span>
             <span class="flex items-center gap-1">
               <span class="w-3 h-3 rounded bg-emerald-100 border border-emerald-300"></span>
-              <span class="text-emerald-700 font-bold">Concluído até _/_ (Verde)</span>
+              <span class="text-emerald-700 font-bold">Concluído (Verde)</span>
             </span>
             <span class="flex items-center gap-1">
               <span class="w-3 h-3 rounded bg-slate-200 border border-slate-300"></span>
@@ -1048,6 +1052,7 @@
     // INITIALIZATION
     document.addEventListener("DOMContentLoaded", () => {
       checkAuthStatus();
+      initCloudSync();
       loadStateFromStorage();
       setupEventListeners();
       renderCompanyList();
@@ -1332,6 +1337,70 @@
       }
     }
 
+    
+    // REALTIME CLOUD SYNC (FIREBASE REALTIME DB)
+    let cloudDb = null;
+    let isRemoteUpdate = false;
+
+    function initCloudSync() {
+      try {
+        const firebaseConfig = {
+          databaseURL: "https://rotinafechamentorbm-default-rtdb.firebaseio.com"
+        };
+        if (typeof firebase !== 'undefined' && firebase.apps) {
+          if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+          }
+          cloudDb = firebase.database();
+          
+          // Listen for realtime cloud updates from other users
+          cloudDb.ref("closing_system_v8").on("value", snapshot => {
+            const data = snapshot.val();
+            if (data) {
+              isRemoteUpdate = true;
+              if (data.companies && Array.isArray(data.companies) && data.companies.length > 0) {
+                companies = data.companies;
+              }
+              if (data.closingData) {
+                closingData = data.closingData;
+              }
+              if (data.closingTasks && Array.isArray(data.closingTasks) && data.closingTasks.length > 0) {
+                closingTasks = data.closingTasks;
+              }
+              
+              // Local save without re-triggering remote push
+              localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
+              localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
+              localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
+
+              renderCompanyList();
+              renderRoutineTable();
+              updateSelectedCompanyStats();
+              isRemoteUpdate = false;
+            }
+          });
+        }
+      } catch(e) {
+        console.log("Cloud Sync init note:", e);
+      }
+    }
+
+    function syncToCloud() {
+      if (cloudDb && !isRemoteUpdate) {
+        try {
+          cloudDb.ref("closing_system_v8").set({
+            companies,
+            closingData,
+            closingTasks,
+            updatedAt: Date.now()
+          });
+        } catch(e) {
+          console.log("Cloud sync save note:", e);
+        }
+      }
+    }
+
+
     function saveStateToStorage() {
       localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
       localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
@@ -1551,7 +1620,7 @@
             labelText = "Inativa / Saída";
           } else if (cellData.status === 'REALIZADO' || cellData.status === 'CONCLUIDO') {
             cellStyleClass = "status-realizado";
-            labelText = "_/_";
+            labelText = "Concluído";
           } else if (cellData.status === 'ANDAMENTO' || cellData.status === 'EM_ANDAMENTO') {
             cellStyleClass = "status-andamento";
             labelText = "em andamento";

@@ -1515,14 +1515,9 @@
       if (storedCompanies) {
         try {
           const parsed = JSON.parse(storedCompanies);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            companies = parsed;
-            const existingCodes = new Set(companies.map(c => String(c.code)));
-            INITIAL_COMPANIES.forEach(initC => {
-              if (!existingCodes.has(String(initC.code))) {
-                companies.push(JSON.parse(JSON.stringify(initC)));
-              }
-            });
+          let parsedArr = Array.isArray(parsed) ? parsed : (typeof parsed === "object" && parsed !== null ? Object.values(parsed) : null);
+          if (parsedArr && parsedArr.length > 0) {
+            companies = parsedArr;
           } else {
             companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
           }
@@ -1537,6 +1532,14 @@
       if (!companies || !Array.isArray(companies) || companies.length === 0) {
         companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
       }
+
+      // Merge INITIAL_COMPANIES so no company is ever missing
+      const existingCodes = new Set(companies.map(c => String(c.code)));
+      INITIAL_COMPANIES.forEach(initC => {
+        if (!existingCodes.has(String(initC.code))) {
+          companies.push(JSON.parse(JSON.stringify(initC)));
+        }
+      });
 
       // ALWAYS apply defaults to ALL companies in memory, but PRESERVE user edits to colaborador
       companies.forEach(c => {
@@ -1564,7 +1567,14 @@
 
       if (storedTasks) {
         try {
-          closingTasks = JSON.parse(storedTasks);
+          const parsedT = JSON.parse(storedTasks);
+          if (Array.isArray(parsedT) && parsedT.length > 0) {
+            closingTasks = parsedT;
+          } else if (typeof parsedT === "object" && parsedT !== null) {
+            closingTasks = Object.values(parsedT);
+          } else {
+            closingTasks = [...DEFAULT_CLOSING_TASKS];
+          }
         } catch(e) {
           closingTasks = [...DEFAULT_CLOSING_TASKS];
         }
@@ -1573,15 +1583,30 @@
       const storedHistory = localStorage.getItem("rbm_closing_history_v8") || localStorage.getItem("rbm_closing_history_v7");
       if (storedHistory) {
         try {
-          historyLog = JSON.parse(storedHistory);
+          const parsedH = JSON.parse(storedHistory);
+          if (Array.isArray(parsedH)) historyLog = parsedH;
+          else if (typeof parsedH === "object" && parsedH !== null) historyLog = Object.values(parsedH);
+          else historyLog = [];
         } catch(e) {
           historyLog = [];
         }
       }
     }
 
-    
-            // REALTIME CLOUD SYNC (FIREBASE REALTIME DB - ISOLATED NODE)
+    // RESET COMPANY FILTERS HELPER
+    function resetCompanyFilters() {
+      const sideSearch = document.getElementById("sideSearchInput");
+      const colabFilter = document.getElementById("filterColaborador");
+      const taxFilter = document.getElementById("filterEnquadramento");
+      const statusFilter = document.getElementById("filterStatusSaida");
+      if (sideSearch) sideSearch.value = "";
+      if (colabFilter) colabFilter.value = "";
+      if (taxFilter) taxFilter.value = "";
+      if (statusFilter) statusFilter.value = "";
+      renderCompanyList();
+    }
+
+    // REALTIME CLOUD SYNC (FIREBASE REALTIME DB - ISOLATED NODE)
     let cloudDb = null;
     let isRemoteUpdate = false;
     const FIREBASE_NODE_PATH = "rotina_fechamento_contabil_live";
@@ -1619,9 +1644,28 @@
           cloudDb.ref(FIREBASE_NODE_PATH).on("value", snapshot => {
             try {
               const data = snapshot.val();
-              if (data && data.companies && Array.isArray(data.companies) && data.companies.length > 0) {
+              let cloudCompaniesRaw = data ? data.companies : null;
+              let cloudCompaniesArray = null;
+
+              if (cloudCompaniesRaw) {
+                if (Array.isArray(cloudCompaniesRaw)) {
+                  cloudCompaniesArray = cloudCompaniesRaw;
+                } else if (typeof cloudCompaniesRaw === 'object' && cloudCompaniesRaw !== null) {
+                  cloudCompaniesArray = Object.values(cloudCompaniesRaw);
+                }
+              }
+
+              if (cloudCompaniesArray && cloudCompaniesArray.length > 0) {
                 isRemoteUpdate = true;
-                companies = data.companies;
+                companies = cloudCompaniesArray;
+
+                // Ensure ALL initial companies exist in memory
+                const existingCodes = new Set(companies.map(c => String(c.code)));
+                INITIAL_COMPANIES.forEach(initC => {
+                  if (!existingCodes.has(String(initC.code))) {
+                    companies.push(JSON.parse(JSON.stringify(initC)));
+                  }
+                });
 
                 // Ensure default properties while preserving custom colaborador edits
                 companies.forEach(c => {
@@ -1636,12 +1680,20 @@
                 });
 
                 if (data.closingData) closingData = sanitizeClosingData(data.closingData);
-                if (data.closingTasks && Array.isArray(data.closingTasks) && data.closingTasks.length > 0) {
-                  closingTasks = data.closingTasks;
+                if (data.closingTasks) {
+                  const tasksRaw = data.closingTasks;
+                  if (Array.isArray(tasksRaw) && tasksRaw.length > 0) {
+                    closingTasks = tasksRaw;
+                  } else if (typeof tasksRaw === 'object' && tasksRaw !== null) {
+                    closingTasks = Object.values(tasksRaw);
+                  }
                 }
-                if (data.historyLog && Array.isArray(data.historyLog)) {
-                  historyLog = data.historyLog;
+                if (data.historyLog) {
+                  const histRaw = data.historyLog;
+                  if (Array.isArray(histRaw)) historyLog = histRaw;
+                  else if (typeof histRaw === 'object' && histRaw !== null) historyLog = Object.values(histRaw);
                 }
+
                 localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
                 localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
                 localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
@@ -1652,20 +1704,64 @@
                 updateSelectedCompanyStats();
                 updateLastCompanyActionDisplay();
                 renderHistoryBadge();
-                if (currentSelectedCode) {
+                if (currentSelectedCode && companies.some(c => String(c.code) === String(currentSelectedCode))) {
                   selectCompany(currentSelectedCode);
+                } else if (companies.length > 0) {
+                  selectCompany(companies[0].code);
                 }
                 updateCloudStatusBadge('synced');
                 isRemoteUpdate = false;
               } else {
+                // If cloud is empty or invalid, keep or restore INITIAL_COMPANIES
+                if (!companies || !Array.isArray(companies) || companies.length === 0) {
+                  companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+                } else {
+                  const existingCodes = new Set(companies.map(c => String(c.code)));
+                  INITIAL_COMPANIES.forEach(initC => {
+                    if (!existingCodes.has(String(initC.code))) {
+                      companies.push(JSON.parse(JSON.stringify(initC)));
+                    }
+                  });
+                }
+                renderCompanyList();
+                if (!currentSelectedCode && companies.length > 0) {
+                  selectCompany(companies[0].code);
+                } else if (currentSelectedCode) {
+                  selectCompany(currentSelectedCode);
+                }
                 syncToCloud();
               }
             } catch(err) {
               console.log("Cloud payload note:", err);
+              if (!companies || !Array.isArray(companies) || companies.length === 0) {
+                companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+              }
+              renderCompanyList();
+              if (!currentSelectedCode && companies.length > 0) {
+                selectCompany(companies[0].code);
+              }
               updateCloudStatusBadge('error', 'Erro ao ler dados da nuvem');
             }
           }, err => {
             console.log("Firebase sync note:", err);
+            if (!companies || !Array.isArray(companies) || companies.length === 0) {
+              companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+            }
+            renderCompanyList();
+            if (!currentSelectedCode && companies.length > 0) {
+              selectCompany(companies[0].code);
+            }
+            updateCloudStatusBadge('error', 'Sem permissão ou offline');
+          });
+        }
+      } catch(e) {
+        console.log("Local fallback mode active:", e);
+        updateCloudStatusBadge('error', 'Modo offline ativo');
+      }
+    }| !Array.isArray(companies) || companies.length === 0) {
+              companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+              renderCompanyList();
+            }
             updateCloudStatusBadge('error', 'Sem permissão ou offline');
           });
         }
@@ -1825,9 +1921,12 @@
 
       if (filtered.length === 0) {
         listContainer.innerHTML = `
-          <div class="p-6 text-center text-slate-400 text-xs">
-            <i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300"></i>
-            <p>Nenhuma empresa encontrada com os filtros selecionados.</p>
+          <div class="p-6 text-center text-slate-400 text-xs space-y-2">
+            <i class="fa-solid fa-folder-open text-3xl mb-1 text-slate-300"></i>
+            <p class="font-semibold text-slate-600">Nenhuma empresa encontrada com os filtros atuais.</p>
+            <button onclick="resetCompanyFilters()" class="px-3 py-1.5 bg-blue-600 text-white font-bold rounded-lg text-xs hover:bg-blue-500 transition shadow-xs">
+              <i class="fa-solid fa-filter-circle-xmark mr-1"></i>Limpar Filtros de Busca
+            </button>
           </div>`;
         return;
       }

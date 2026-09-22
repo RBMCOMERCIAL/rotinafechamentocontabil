@@ -179,6 +179,11 @@
   <section class="bg-white border-b border-slate-200 shadow-sm no-print">
     <div class="max-w-[1700px] mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-4 text-xs">
       <div class="flex items-center space-x-6">
+        <!-- Live Cloud Sync Badge -->
+        <div id="cloudStatusBadge" class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200 shadow-xs transition" title="Sincronização em Tempo Real Ativa">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Nuvem Sincronizada</span>
+        </div>
         <div class="flex items-center space-x-2">
           <span class="text-slate-500">Total Empresas:</span>
           <span id="statTotalCompanies" class="font-bold text-slate-800 text-sm bg-slate-100 px-2 py-0.5 rounded">0</span>
@@ -1318,6 +1323,24 @@
     let isRemoteUpdate = false;
     const FIREBASE_NODE_PATH = "rotina_fechamento_contabil_live";
 
+    function updateCloudStatusBadge(status, message) {
+      const badge = document.getElementById("cloudStatusBadge");
+      if (!badge) return;
+      if (status === 'synced') {
+        badge.className = "flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200 transition";
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Nuvem Sincronizada</span>';
+        badge.title = message || "Conectado e sincronizado em tempo real";
+      } else if (status === 'syncing') {
+        badge.className = "flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-semibold rounded-full border border-amber-200 transition";
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span><span>Sincronizando...</span>';
+        badge.title = message || "Enviando alterações para a nuvem";
+      } else if (status === 'error') {
+        badge.className = "flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 text-rose-700 text-xs font-semibold rounded-full border border-rose-200 transition";
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>Offline (Salvo Local)</span>';
+        badge.title = message || "Sem conexão com a nuvem";
+      }
+    }
+
     function initCloudSync() {
       try {
         const firebaseConfig = {
@@ -1336,6 +1359,18 @@
               if (data && data.companies && Array.isArray(data.companies) && data.companies.length > 0) {
                 isRemoteUpdate = true;
                 companies = data.companies;
+
+                // Ensure ONVIO_RESPONSAVEIS is always applied to companies
+                companies.forEach(c => {
+                  const codeStr = String(c.code);
+                  if (ONVIO_RESPONSAVEIS[codeStr]) {
+                    c.colaborador = ONVIO_RESPONSAVEIS[codeStr];
+                  }
+                  if (!c.tipo || c.tipo.trim() === "") c.tipo = "Não informado";
+                  if (c.mesSaida === undefined || c.mesSaida === null) c.mesSaida = -1;
+                  c.tax = normalizeTaxName(c.tax);
+                });
+
                 if (data.closingData) closingData = data.closingData;
                 if (data.closingTasks && Array.isArray(data.closingTasks) && data.closingTasks.length > 0) {
                   closingTasks = data.closingTasks;
@@ -1347,40 +1382,58 @@
                 renderCompanyList();
                 renderRoutineTable();
                 updateSelectedCompanyStats();
+                if (currentSelectedCode) {
+                  selectCompany(currentSelectedCode);
+                }
+                updateCloudStatusBadge('synced');
                 isRemoteUpdate = false;
+              } else {
+                syncToCloud();
               }
             } catch(err) {
               console.log("Cloud payload note:", err);
+              updateCloudStatusBadge('error', 'Erro ao ler dados da nuvem');
             }
           }, err => {
             console.log("Firebase sync note:", err);
+            updateCloudStatusBadge('error', 'Sem permissão ou offline');
           });
         }
       } catch(e) {
-        console.log("Local fallback mode active");
+        console.log("Local fallback mode active:", e);
+        updateCloudStatusBadge('error', 'Modo offline ativo');
       }
     }
 
     function syncToCloud() {
       if (cloudDb && !isRemoteUpdate) {
         try {
+          updateCloudStatusBadge('syncing');
           cloudDb.ref(FIREBASE_NODE_PATH).set({
             companies,
             closingData,
             closingTasks,
             updatedAt: Date.now()
+          }, (err) => {
+            if (err) {
+              console.log("Cloud set error:", err);
+              updateCloudStatusBadge('error');
+            } else {
+              updateCloudStatusBadge('synced');
+            }
           });
         } catch(e) {
           console.log("Cloud push fallback:", e);
+          updateCloudStatusBadge('error');
         }
       }
     }
-
 
     function saveStateToStorage() {
       localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
       localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
       localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
+      syncToCloud();
       updateSelectedCompanyStats();
     }
 

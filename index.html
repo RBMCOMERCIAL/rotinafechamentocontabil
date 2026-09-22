@@ -396,7 +396,20 @@
             </select>
           </div>
 
-          
+          <div>
+            <label class="block font-semibold text-slate-500 mb-1">Tipo de Empresa</label>
+            <select id="inputCompanyTipo" class="w-full border border-slate-300 rounded-md p-1.5 bg-white text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <option value="Não informado">Não informado</option>
+              <option value="Serviço">Serviço</option>
+              <option value="Comércio">Comércio</option>
+              <option value="Indústria">Indústria</option>
+              <option value="Holding / Adm">Holding / Adm</option>
+              <option value="Saúde / Médica">Saúde / Médica</option>
+              <option value="Transporte">Transporte</option>
+              <option value="Sem movimento">Sem movimento / Inativa</option>
+              <option value="Outros">Outros</option>
+            </select>
+          </div>
 
           <div>
             <label class="block font-semibold text-slate-500 mb-1">DT ENTRADA RBM</label>
@@ -647,6 +660,21 @@
             </select>
           </div>
           
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Tipo de Empresa</label>
+          <select id="modalInputTipo" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none font-semibold">
+            <option value="Não informado">Não informado</option>
+            <option value="Serviço">Serviço</option>
+            <option value="Comércio">Comércio</option>
+            <option value="Indústria">Indústria</option>
+            <option value="Holding / Adm">Holding / Adm</option>
+            <option value="Saúde / Médica">Saúde / Médica</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Sem movimento">Sem movimento / Inativa</option>
+            <option value="Outros">Outros</option>
+          </select>
         </div>
 
         <div>
@@ -1881,6 +1909,7 @@
 
       // Populate inputs
       document.getElementById("inputCompanyColaborador").value = company.colaborador || "";
+      document.getElementById("inputCompanyTipo").value = company.tipo || "Não informado";
       document.getElementById("inputCompanyMesSaida").value = compMesSaida;
       document.getElementById("inputDtEntradaRbm").value = company.dtEntradaRbm || "";
       document.getElementById("inputCompanyTax").value = company.tax || "Simples Nacional Puro";
@@ -2173,6 +2202,20 @@
         });
       });
 
+      document.getElementById("inputCompanyTipo").addEventListener("change", (e) => {
+        if (!currentSelectedCode) return;
+        const newTipo = e.target.value;
+        requireAuth(() => {
+          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+          if (comp) {
+            comp.tipo = newTipo;
+            addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou o Tipo de Empresa para "${newTipo}"`);
+            saveStateToStorage();
+            renderCompanyList();
+          }
+        });
+      });
+
       document.getElementById("inputCompanyTax").addEventListener("change", (e) => {
         if (!currentSelectedCode) return;
         const newTax = e.target.value;
@@ -2295,6 +2338,7 @@
           document.getElementById("modalInputCode").value = comp.code;
           document.getElementById("modalInputName").value = comp.name;
           document.getElementById("modalInputTax").value = comp.tax || "Simples Nacional Puro";
+          document.getElementById("modalInputTipo").value = comp.tipo || "Não informado";
           document.getElementById("modalInputColaborador").value = comp.colaborador || "";
           document.getElementById("modalInputDtEntradaRbm").value = comp.dtEntradaRbm || "";
           document.getElementById("modalInputMesSaida").value = (comp.mesSaida !== undefined && comp.mesSaida !== null) ? comp.mesSaida : "-1";
@@ -2315,10 +2359,10 @@
         const newCode = document.getElementById("modalInputCode").value.trim();
         const name = document.getElementById("modalInputName").value.trim();
         const tax = document.getElementById("modalInputTax").value;
+        const tipo = document.getElementById("modalInputTipo").value;
         const colab = document.getElementById("modalInputColaborador").value;
         const dtEntradaRbm = document.getElementById("modalInputDtEntradaRbm").value.trim();
         const mesSaida = parseInt(document.getElementById("modalInputMesSaida").value, 10);
-        const tipo = "Não informado";
 
         if (origCode) {
           // Editing existing

@@ -141,6 +141,25 @@
 
       <!-- ACTION BUTTONS -->
       <div class="flex items-center space-x-2">
+        <!-- OPERATOR / ACTIVE USER SELECTOR -->
+        <div class="flex items-center space-x-1.5 bg-brand-800/80 px-2.5 py-1.5 rounded-lg border border-brand-500 shadow-xs">
+          <i class="fa-solid fa-user-circle text-emerald-400"></i>
+          <label class="text-xs font-bold text-blue-200 hidden md:inline">Operador:</label>
+          <select id="activeUserSelect" class="bg-brand-900 text-white font-bold text-xs py-0.5 px-1.5 rounded border border-brand-500 focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer" title="Selecione quem está realizando as alterações">
+            <option value="Viviane">Viviane</option>
+            <option value="Lilian">Lilian</option>
+            <option value="Luziete">Luziete</option>
+            <option value="Aurea">Aurea</option>
+            <option value="Marcio">Marcio</option>
+          </select>
+        </div>
+
+        <button id="btnOpenHistory" class="px-3 py-2 bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1.5" title="Ver Histórico de Alterações em Tempo Real">
+          <i class="fa-solid fa-clock-rotate-left text-amber-300"></i>
+          <span>Histórico</span>
+          <span id="historyBadgeCount" class="bg-indigo-900 text-amber-300 text-[10px] font-bold px-1.5 py-0.2 rounded-full">0</span>
+        </button>
+
         <button id="btnNewCompany" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1.5">
           <i class="fa-solid fa-plus"></i>
           <span>Nova Empresa</span>
@@ -428,6 +447,19 @@
           </label>
           <textarea id="inputObservations" rows="2" placeholder="Digite observações importantes, particularidades fiscais, histórico ou pendências da empresa..."
             class="w-full p-2 text-xs border border-slate-300 rounded-lg bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-y"></textarea>
+        </div>
+
+        <!-- LAST ACTION BANNER FOR CURRENT COMPANY -->
+        <div class="mt-2.5 pt-2.5 border-t border-slate-100 text-xs text-slate-600 flex flex-wrap items-center justify-between gap-2 bg-slate-50/80 p-2 rounded-lg border border-slate-200/80">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <i class="fa-solid fa-history text-indigo-500 shrink-0"></i>
+            <span class="font-bold text-slate-700 shrink-0">Última alteração:</span>
+            <span id="displayLastActionText" class="truncate text-slate-600">Sem alterações registradas recentemente nesta empresa.</span>
+          </div>
+          <button id="btnViewCompanyHistory" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1 shrink-0">
+            <span>Ver Histórico Completo</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+          </button>
         </div>
 
       </div>
@@ -750,6 +782,63 @@
     </div>
   </div>
 
+  <!-- HISTORY MODAL -->
+  <div id="historyModal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-[95] items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+      
+      <!-- HEADER -->
+      <div class="p-4 bg-brand-600 text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-amber-300 text-lg shadow-inner">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base leading-tight">Histórico de Alterações</h3>
+            <p class="text-xs text-slate-200">Registro em tempo real de quem fez cada alteração no escritório</p>
+          </div>
+        </div>
+        <button id="btnCloseHistoryModal" class="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-xl font-bold transition">&times;</button>
+      </div>
+
+      <!-- FILTER TOOLBAR -->
+      <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex-1 min-w-[220px] relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </span>
+          <input type="text" id="historySearchInput" placeholder="Filtrar histórico por usuário, empresa, etapa ou ação..."
+            class="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        
+        <div class="flex items-center space-x-2">
+          <button id="btnExportHistory" class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-lg border border-slate-300 shadow-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-file-export text-blue-600"></i>
+            <span>Exportar JSON</span>
+          </button>
+          <button id="btnClearHistory" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-lg border border-rose-200 shadow-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-trash-can"></i>
+            <span>Limpar Histórico</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- HISTORY LIST CONTAINER -->
+      <div id="historyListContainer" class="flex-1 p-4 overflow-y-auto space-y-2.5 bg-slate-100/60 min-h-[300px]">
+        <!-- JS Populated Items -->
+      </div>
+
+      <!-- FOOTER -->
+      <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500">
+        <span class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Sincronizado automaticamente via Firebase Cloud</span>
+        </span>
+        <button id="btnOKHistoryModal" class="px-5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-lg shadow">Fechar</button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- PASSWORD LOCK OVERLAY (ONLY SHOWN WHEN ATTEMPTING AN EDIT) -->
   <div id="passwordLockOverlay" style="display: none;" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 text-center space-y-5 relative">
@@ -1028,6 +1117,8 @@
     let currentYear = 2026;
     let activeCellModalData = null; // { taskIdx, monthIdx }
     let pendingAuthAction = null;
+    let historyLog = [];
+    let activeUser = localStorage.getItem("rbm_closing_active_user") || "Viviane";
 
     // INITIALIZATION
     document.addEventListener("DOMContentLoaded", () => {
@@ -1037,12 +1128,23 @@
       setupEventListeners();
       renderCompanyList();
       
+      const userSel = document.getElementById("activeUserSelect");
+      if (userSel) {
+        userSel.value = activeUser;
+        userSel.addEventListener("change", (e) => {
+          activeUser = e.target.value;
+          localStorage.setItem("rbm_closing_active_user", activeUser);
+        });
+      }
+
       // Auto-select first company
       if (companies.length > 0) {
         selectCompany(companies[0].code);
       }
       
       updateSelectedCompanyStats();
+      updateLastCompanyActionDisplay();
+      renderHistoryBadge();
     });
 
     function checkAuthStatus() {
@@ -1074,6 +1176,129 @@
       const err = document.getElementById("passwordErrorMsg");
       if (err) err.classList.add("hidden");
       pendingAuthAction = null;
+    }
+
+    // AUDIT LOG & HISTORY FUNCTIONS
+    function formatFullDateTime(d) {
+      const dateObj = d instanceof Date ? d : new Date(d);
+      if (isNaN(dateObj.getTime())) return "";
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const yyyy = dateObj.getFullYear();
+      const hh = String(dateObj.getHours()).padStart(2, '0');
+      const min = String(dateObj.getMinutes()).padStart(2, '0');
+      return `${dd}/${mm}/${yyyy} às ${hh}:${min}`;
+    }
+
+    function addHistoryEntry(companyCode, companyName, actionType, details) {
+      const codeStr = companyCode ? String(companyCode) : (currentSelectedCode ? String(currentSelectedCode) : "--");
+      let compName = companyName;
+      if (!compName && codeStr && companies) {
+        const comp = companies.find(c => String(c.code) === codeStr);
+        if (comp) compName = comp.name;
+      }
+
+      const newEntry = {
+        id: Date.now() + "_" + Math.random().toString(36).substr(2, 4),
+        timestamp: formatFullDateTime(new Date()),
+        user: activeUser || "Viviane",
+        companyCode: codeStr,
+        companyName: compName || "Empresa",
+        actionType: actionType || "ALTERACAO",
+        details: details || ""
+      };
+
+      if (!Array.isArray(historyLog)) historyLog = [];
+      historyLog.unshift(newEntry);
+      if (historyLog.length > 300) historyLog = historyLog.slice(0, 300);
+
+      saveStateToStorage();
+      updateLastCompanyActionDisplay();
+      renderHistoryBadge();
+    }
+
+    function updateLastCompanyActionDisplay() {
+      const banner = document.getElementById("displayLastActionText");
+      if (!banner) return;
+      
+      if (!currentSelectedCode) {
+        banner.innerText = "Selecione uma empresa para visualizar as alterações recentes.";
+        return;
+      }
+
+      const compCodeStr = String(currentSelectedCode);
+      const compHistory = (historyLog || []).filter(h => String(h.companyCode) === compCodeStr);
+      
+      if (compHistory.length > 0) {
+        const last = compHistory[0];
+        banner.innerHTML = `<strong class="text-blue-800 font-bold">${last.user}</strong> em <span class="font-semibold text-slate-700">${last.timestamp}</span>: <span class="italic text-slate-800">${last.details}</span>`;
+      } else {
+        banner.innerText = "Sem alterações registradas recentemente nesta empresa.";
+      }
+    }
+
+    function renderHistoryBadge() {
+      const badge = document.getElementById("historyBadgeCount");
+      if (badge) badge.innerText = (historyLog || []).length;
+    }
+
+    function renderHistoryModal() {
+      const container = document.getElementById("historyListContainer");
+      if (!container) return;
+
+      const searchInput = document.getElementById("historySearchInput");
+      const searchVal = (searchInput ? searchInput.value : "").toLowerCase().trim();
+
+      const filtered = (historyLog || []).filter(h => {
+        if (!searchVal) return true;
+        return (
+          (h.user && h.user.toLowerCase().includes(searchVal)) ||
+          (h.companyCode && String(h.companyCode).toLowerCase().includes(searchVal)) ||
+          (h.companyName && h.companyName.toLowerCase().includes(searchVal)) ||
+          (h.details && h.details.toLowerCase().includes(searchVal))
+        );
+      });
+
+      renderHistoryBadge();
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-slate-400 text-xs">
+            <i class="fa-solid fa-clock-rotate-left text-3xl mb-2 text-slate-300"></i>
+            <p>Nenhuma alteração encontrada no histórico.</p>
+          </div>`;
+        return;
+      }
+
+      const userColors = {
+        "Viviane": "bg-purple-100 text-purple-700 border-purple-200",
+        "Lilian": "bg-blue-100 text-blue-700 border-blue-200",
+        "Luziete": "bg-emerald-100 text-emerald-700 border-emerald-200",
+        "Aurea": "bg-amber-100 text-amber-800 border-amber-200",
+        "Marcio": "bg-rose-100 text-rose-700 border-rose-200"
+      };
+
+      container.innerHTML = filtered.map(h => {
+        const badgeClass = userColors[h.user] || "bg-slate-100 text-slate-700 border-slate-200";
+        return `
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex items-start justify-between gap-3 text-xs hover:border-blue-300 transition">
+            <div class="flex items-start gap-3 min-w-0">
+              <span class="px-2.5 py-1 rounded-lg font-bold text-xs border ${badgeClass} shrink-0 flex items-center gap-1">
+                <i class="fa-solid fa-user text-[10px]"></i>${h.user}
+              </span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap mb-1">
+                  <span class="font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">CÓD ${h.companyCode}</span>
+                  <strong class="font-bold text-slate-800 truncate">${h.companyName}</strong>
+                </div>
+                <p class="text-slate-700 font-medium leading-relaxed">${h.details}</p>
+              </div>
+            </div>
+            <div class="shrink-0 text-right text-[11px] text-slate-400 font-medium">
+              <i class="fa-regular fa-clock mr-1"></i>${h.timestamp}
+            </div>
+          </div>`;
+      }).join('');
     }
 
     const ONVIO_RESPONSAVEIS = {
@@ -1285,8 +1510,9 @@
         companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
       }
 
-      // ALWAYS apply ONVIO_RESPONSAVEIS to ALL companies in memory
+      // ALWAYS apply defaults to ALL companies in memory, but PRESERVE user edits to colaborador
       companies.forEach(c => {
+        c.code = String(c.code);
         c.tax = normalizeTaxName(c.tax);
         if (!c.tipo || c.tipo.trim() === "" || c.tipo === "Sem Tipo") {
           c.tipo = "Não informado";
@@ -1295,7 +1521,7 @@
           c.mesSaida = -1;
         }
         const codeStr = String(c.code);
-        if (ONVIO_RESPONSAVEIS[codeStr]) {
+        if (ONVIO_RESPONSAVEIS[codeStr] && (!c.colaborador || c.colaborador.trim() === "")) {
           c.colaborador = ONVIO_RESPONSAVEIS[codeStr];
         }
       });
@@ -1313,6 +1539,15 @@
           closingTasks = JSON.parse(storedTasks);
         } catch(e) {
           closingTasks = [...DEFAULT_CLOSING_TASKS];
+        }
+      }
+
+      const storedHistory = localStorage.getItem("rbm_closing_history_v8") || localStorage.getItem("rbm_closing_history_v7");
+      if (storedHistory) {
+        try {
+          historyLog = JSON.parse(storedHistory);
+        } catch(e) {
+          historyLog = [];
         }
       }
     }
@@ -1360,10 +1595,11 @@
                 isRemoteUpdate = true;
                 companies = data.companies;
 
-                // Ensure ONVIO_RESPONSAVEIS is always applied to companies
+                // Ensure default properties while preserving custom colaborador edits
                 companies.forEach(c => {
                   const codeStr = String(c.code);
-                  if (ONVIO_RESPONSAVEIS[codeStr]) {
+                  c.code = codeStr;
+                  if (ONVIO_RESPONSAVEIS[codeStr] && (!c.colaborador || c.colaborador.trim() === "")) {
                     c.colaborador = ONVIO_RESPONSAVEIS[codeStr];
                   }
                   if (!c.tipo || c.tipo.trim() === "") c.tipo = "Não informado";
@@ -1375,13 +1611,19 @@
                 if (data.closingTasks && Array.isArray(data.closingTasks) && data.closingTasks.length > 0) {
                   closingTasks = data.closingTasks;
                 }
+                if (data.historyLog && Array.isArray(data.historyLog)) {
+                  historyLog = data.historyLog;
+                }
                 localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
                 localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
                 localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
+                localStorage.setItem("rbm_closing_history_v8", JSON.stringify(historyLog));
 
                 renderCompanyList();
                 renderRoutineTable();
                 updateSelectedCompanyStats();
+                updateLastCompanyActionDisplay();
+                renderHistoryBadge();
                 if (currentSelectedCode) {
                   selectCompany(currentSelectedCode);
                 }
@@ -1413,6 +1655,7 @@
             companies,
             closingData,
             closingTasks,
+            historyLog,
             updatedAt: Date.now()
           }, (err) => {
             if (err) {
@@ -1433,8 +1676,11 @@
       localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
       localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
       localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
+      localStorage.setItem("rbm_closing_history_v8", JSON.stringify(historyLog));
       syncToCloud();
       updateSelectedCompanyStats();
+      updateLastCompanyActionDisplay();
+      renderHistoryBadge();
     }
 
     function sanitizeClosingData(raw) {
@@ -1519,7 +1765,8 @@
       const statusSaidaFilter = document.getElementById("filterStatusSaida").value;
 
       const filtered = companies.filter(c => {
-        const matchesSearch = c.code.toLowerCase().includes(searchVal) || c.name.toLowerCase().includes(searchVal);
+        const codeStr = String(c.code);
+        const matchesSearch = codeStr.toLowerCase().includes(searchVal) || c.name.toLowerCase().includes(searchVal);
         
         let matchesColab = true;
         if (colabFilter === "Sem Colaborador") {
@@ -1558,18 +1805,19 @@
       }
 
       listContainer.innerHTML = filtered.map(c => {
-        const isSelected = c.code === currentSelectedCode;
+        const codeStr = String(c.code);
+        const isSelected = codeStr === String(currentSelectedCode);
         const compMesSaida = c.mesSaida !== undefined && c.mesSaida !== null ? parseInt(c.mesSaida, 10) : -1;
         const isExited = compMesSaida >= 0;
 
         const colabDisplay = c.colaborador ? `<span class="text-blue-700 font-bold">${c.colaborador}</span>` : '<span class="text-amber-600 font-semibold bg-amber-50 px-1 rounded border border-amber-200">Pendente Atribuição</span>';
 
         return `
-          <div onclick="selectCompany('${c.code}')" 
+          <div onclick="selectCompany('${codeStr}')" 
             class="p-2.5 rounded-lg border transition cursor-pointer flex items-center justify-between gap-2 ${isSelected ? 'bg-blue-50 border-blue-500 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'}">
             <div class="flex items-center gap-2.5 min-w-0">
               <span class="w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}">
-                ${c.code}
+                ${codeStr}
               </span>
               <div class="min-w-0">
                 <h4 class="font-semibold text-xs text-slate-800 truncate ${isExited ? 'line-through text-slate-400' : ''}">${c.name}</h4>
@@ -1611,10 +1859,11 @@
 
     // SELECT COMPANY AND RENDER ROUTINE
     function selectCompany(code) {
-      const company = companies.find(c => c.code === code);
+      const codeStr = String(code);
+      const company = companies.find(c => String(c.code) === codeStr);
       if (!company) return;
 
-      currentSelectedCode = code;
+      currentSelectedCode = codeStr;
       renderCompanyList(); // Update sidebar selection highlight
 
       const compMesSaida = company.mesSaida !== undefined && company.mesSaida !== null ? parseInt(company.mesSaida, 10) : -1;
@@ -1638,8 +1887,10 @@
       document.getElementById("inputYear").value = currentYear;
 
       // Populate observations
-      const yearData = getCompanyYearData(code, currentYear);
+      const yearData = getCompanyYearData(codeStr, currentYear);
       document.getElementById("inputObservations").value = yearData.observations || "";
+
+      updateLastCompanyActionDisplay();
 
       // Render Routine Matrix & Stats for this specific company
       renderRoutineTable();
@@ -1653,7 +1904,7 @@
         return;
       }
 
-      const company = companies.find(c => c.code === currentSelectedCode);
+      const company = companies.find(c => String(c.code) === String(currentSelectedCode));
       const compMesSaida = (company && company.mesSaida !== undefined && company.mesSaida !== null && company.mesSaida !== "") ? parseInt(company.mesSaida, 10) : -1;
       const yearData = getCompanyYearData(currentSelectedCode, currentYear);
 
@@ -1702,23 +1953,7 @@
             // Default Tracinho (Dash / Blank)
             cellStyleClass = "status-dash";
             labelText = "—";
-          }
-
-          html += `
-            <td onclick="openCellModal(${taskIdx}, ${monthIdx})" 
-              class="py-1.5 px-1 text-center font-bold text-[10px] grid-cell ${cellStyleClass} border-r border-slate-100">
-              ${labelText}
-            </td>`;
-        }
-
-        html += `</tr>`;
-      });
-
-      tbody.innerHTML = html;
-      updateSelectedCompanyStats();
-    }
-
-    // OPEN CELL EDIT MODAL (PROTECTED BY PASS)
+           // OPEN CELL EDIT MODAL (PROTECTED BY PASS)
     function openCellModal(taskIdx, monthIdx) {
       if (!currentSelectedCode) return;
       requireAuth(() => {
@@ -1732,6 +1967,7 @@
         const yearData = getCompanyYearData(currentSelectedCode, currentYear);
         const cellData = (yearData.tasks[taskIdx] && yearData.tasks[taskIdx][monthIdx]) || { status: 'DASH', date: '' };
 
+        modalSelectedStatus = cellData.status || 'DASH';
         document.getElementById("cellModal").style.display = "flex";
       });
     }
@@ -1805,7 +2041,7 @@
       // Top & Side Search Filter
       document.getElementById("sideSearchInput").addEventListener("input", renderCompanyList);
       document.getElementById("filterColaborador").addEventListener("change", renderCompanyList);
-document.getElementById("filterEnquadramento").addEventListener("change", renderCompanyList);
+      document.getElementById("filterEnquadramento").addEventListener("change", renderCompanyList);
       document.getElementById("filterStatusSaida").addEventListener("change", renderCompanyList);
       document.getElementById("statMonthSelect").addEventListener("change", updateSelectedCompanyStats);
 
@@ -1820,7 +2056,7 @@ document.getElementById("filterEnquadramento").addEventListener("change", render
           return;
         }
 
-        const matches = companies.filter(c => c.code.toLowerCase().includes(val) || c.name.toLowerCase().includes(val)).slice(0, 8);
+        const matches = companies.filter(c => String(c.code).toLowerCase().includes(val) || c.name.toLowerCase().includes(val)).slice(0, 8);
         if (matches.length === 0) {
           dropdown.innerHTML = `<div class="p-3 text-xs text-slate-400">Nenhuma empresa encontrada</div>`;
         } else {
@@ -1840,7 +2076,7 @@ document.getElementById("filterEnquadramento").addEventListener("change", render
       document.getElementById("btnQuickLookup").addEventListener("click", () => {
         const val = topSearch.value.trim();
         if (val) {
-          const exact = companies.find(c => c.code === val || c.name.toLowerCase() === val.toLowerCase());
+          const exact = companies.find(c => String(c.code) === val || c.name.toLowerCase() === val.toLowerCase());
           if (exact) {
             selectCompany(exact.code);
             dropdown.classList.add("hidden");
@@ -1859,7 +2095,7 @@ document.getElementById("filterEnquadramento").addEventListener("change", render
       // Dynamic editing of metadata for current company
       document.getElementById("inputDtEntradaRbm").addEventListener("blur", (e) => {
         if (!currentSelectedCode) return;
-        const comp = companies.find(c => c.code === currentSelectedCode);
+        const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
         if (comp) {
           comp.dtEntradaRbm = e.target.value;
           saveStateToStorage();
@@ -1901,9 +2137,10 @@ document.getElementById("filterEnquadramento").addEventListener("change", render
         if (!currentSelectedCode) return;
         const newDt = e.target.value;
         requireAuth(() => {
-          const comp = companies.find(c => c.code === currentSelectedCode);
+          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
           if (comp) {
             comp.dtEntradaRbm = newDt;
+            addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou a Data de Entrada RBM para "${newDt || "Em branco"}"`);
             saveStateToStorage();
           }
         });
@@ -1915,6 +2152,8 @@ document.getElementById("filterEnquadramento").addEventListener("change", render
         requireAuth(() => {
           const yearData = getCompanyYearData(currentSelectedCode, currentYear);
           yearData.observations = newObs;
+          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+          addHistoryEntry(currentSelectedCode, comp ? comp.name : "", "OBSERVACOES", `Atualizou as observações da empresa`);
           saveStateToStorage();
         });
       });
@@ -1923,9 +2162,10 @@ document.getElementById("filterEnquadramento").addEventListener("change", render
         if (!currentSelectedCode) return;
         const newColab = e.target.value;
         requireAuth(() => {
-          const comp = companies.find(c => c.code === currentSelectedCode);
+          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
           if (comp) {
             comp.colaborador = newColab;
+            addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou o colaborador responsável para "${newColab || "Em branco"}"`);
             saveStateToStorage();
             renderCompanyList();
             document.getElementById("displayColaboradorText").innerText = comp.colaborador || "Em branco (Clique para atribuir)";
@@ -1933,15 +2173,14 @@ document.getElementById("filterEnquadramento").addEventListener("change", render
         });
       });
 
-
-
       document.getElementById("inputCompanyTax").addEventListener("change", (e) => {
         if (!currentSelectedCode) return;
         const newTax = e.target.value;
         requireAuth(() => {
-          const comp = companies.find(c => c.code === currentSelectedCode);
+          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
           if (comp) {
             comp.tax = newTax;
+            addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou o enquadramento tributário para "${newTax}"`);
             saveStateToStorage();
             renderCompanyList();
             document.getElementById("displayTaxBadge").innerText = `ENQUAD: ${comp.tax}`;
@@ -1953,10 +2192,12 @@ document.getElementById("filterEnquadramento").addEventListener("change", render
         if (!currentSelectedCode) return;
         const val = parseInt(e.target.value, 10);
         requireAuth(() => {
-          const comp = companies.find(c => c.code === currentSelectedCode);
+          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
           if (comp) {
             comp.mesSaida = val;
             applyCompanyExitData(currentSelectedCode, val);
+            const txtMes = val >= 0 ? MONTH_NAMES[val] : "Empresa Ativa (Sem Saída)";
+            addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou a situação de saída RBM para "${txtMes}"`);
             saveStateToStorage();
             selectCompany(currentSelectedCode);
           }
@@ -1966,8 +2207,6 @@ document.getElementById("filterEnquadramento").addEventListener("change", render
       // CELL MODAL BUTTONS
       document.getElementById("btnCloseCellModal").addEventListener("click", closeCellModal);
       document.getElementById("btnCancelCellModal").addEventListener("click", closeCellModal);
-
-      let modalSelectedStatus = 'DASH';
 
       document.getElementById("btnSetDash").addEventListener("click", () => {
         modalSelectedStatus = 'DASH';
@@ -2006,8 +2245,24 @@ document.getElementById("filterEnquadramento").addEventListener("change", render
         
         yearData.tasks[taskIdx][monthIdx] = {
           status: modalSelectedStatus,
-          status: modalSelectedStatus
+          date: getCurrentShortDate()
         };
+
+        const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+        const taskName = closingTasks[taskIdx] || `Etapa ${taskIdx + 1}`;
+        const monthName = MONTH_NAMES[monthIdx] || `Mês ${monthIdx + 1}`;
+        const statusLabels = {
+          'REALIZADO': 'Concluído',
+          'CONCLUIDO': 'Concluído',
+          'ANDAMENTO': 'Em andamento',
+          'EM_ANDAMENTO': 'Em andamento',
+          'PENDENTE': 'Pendente',
+          'CINZA': 'Inativa / Saída',
+          'DASH': '— (Tracinho)'
+        };
+        const statusTxt = statusLabels[modalSelectedStatus] || modalSelectedStatus;
+
+        addHistoryEntry(currentSelectedCode, comp ? comp.name : "", "CHECKLIST", `Alterou a etapa "${taskName}" (Mês: ${monthName}) para "${statusTxt}"`);
 
         saveStateToStorage();
         renderRoutineTable();
@@ -2032,7 +2287,7 @@ document.getElementById("filterEnquadramento").addEventListener("change", render
       document.getElementById("btnEditSelectedCompany").addEventListener("click", () => {
         if (!currentSelectedCode) return;
         requireAuth(() => {
-          const comp = companies.find(c => c.code === currentSelectedCode);
+          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
           if (!comp) return;
 
           document.getElementById("companyModalTitle").innerText = "Editar Empresa";
@@ -2063,15 +2318,16 @@ document.getElementById("filterEnquadramento").addEventListener("change", render
         const colab = document.getElementById("modalInputColaborador").value;
         const dtEntradaRbm = document.getElementById("modalInputDtEntradaRbm").value.trim();
         const mesSaida = parseInt(document.getElementById("modalInputMesSaida").value, 10);
+        const tipo = "Não informado";
 
         if (origCode) {
           // Editing existing
-          const comp = companies.find(c => c.code === origCode);
+          const comp = companies.find(c => String(c.code) === String(origCode));
           if (comp) {
             comp.code = newCode;
             comp.name = name;
             comp.tax = tax;
-comp.colaborador = colab;
+            comp.colaborador = colab;
             comp.dtEntradaRbm = dtEntradaRbm;
             comp.mesSaida = mesSaida;
 
@@ -2079,14 +2335,16 @@ comp.colaborador = colab;
               closingData[newCode] = closingData[origCode];
               delete closingData[origCode];
             }
+            addHistoryEntry(newCode, name, "EMPRESA_EDITADA", `Editou dados cadastrais da empresa`);
           }
         } else {
           // Adding new company
-          if (companies.some(c => c.code === newCode)) {
+          if (companies.some(c => String(c.code) === String(newCode))) {
             alert("Atenção: Já existe uma empresa com esse CÓDIGO!");
             return;
           }
           companies.push({ code: newCode, name, tax, tipo, colaborador: colab, dtEntradaRbm, mesSaida });
+          addHistoryEntry(newCode, name, "EMPRESA_CRIADA", `Cadastrou nova empresa no sistema`);
         }
 
         applyCompanyExitData(newCode, mesSaida);
@@ -2097,7 +2355,101 @@ comp.colaborador = colab;
         document.getElementById("companyModal").style.display = "none";
       });
 
-      // EDIT TASKS MODAL HANDLERS
+      // HISTORY MODAL HANDLERS
+      const btnHistory = document.getElementById("btnOpenHistory");
+      if (btnHistory) {
+        btnHistory.addEventListener("click", () => {
+          renderHistoryModal();
+          document.getElementById("historyModal").classList.remove("hidden");
+          document.getElementById("historyModal").classList.add("flex");
+        });
+      }
+
+      const btnViewCompHist = document.getElementById("btnViewCompanyHistory");
+      if (btnViewCompHist) {
+        btnViewCompHist.addEventListener("click", () => {
+          const searchInput = document.getElementById("historySearchInput");
+          if (searchInput && currentSelectedCode) {
+            searchInput.value = String(currentSelectedCode);
+          }
+          renderHistoryModal();
+          document.getElementById("historyModal").classList.remove("hidden");
+          document.getElementById("historyModal").classList.add("flex");
+        });
+      }
+
+      const btnCloseHist = document.getElementById("btnCloseHistoryModal");
+      if (btnCloseHist) {
+        btnCloseHist.addEventListener("click", () => {
+          document.getElementById("historyModal").classList.add("hidden");
+          document.getElementById("historyModal").classList.remove("flex");
+        });
+      }
+
+      const btnOKHist = document.getElementById("btnOKHistoryModal");
+      if (btnOKHist) {
+        btnOKHist.addEventListener("click", () => {
+          document.getElementById("historyModal").classList.add("hidden");
+          document.getElementById("historyModal").classList.remove("flex");
+        });
+      }
+
+      const histSearchInp = document.getElementById("historySearchInput");
+      if (histSearchInp) {
+        histSearchInp.addEventListener("input", renderHistoryModal);
+      }
+
+      const btnExportHist = document.getElementById("btnExportHistory");
+      if (btnExportHist) {
+        btnExportHist.addEventListener("click", () => {
+          const payload = { historyLog, exportDate: new Date().toISOString() };
+          const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `Historico_Alteracoes_RBM_${getCurrentShortDate().replace('/','-')}.json`;
+          a.click();
+        });
+      }
+
+      const btnClearHist = document.getElementById("btnClearHistory");
+      if (btnClearHist) {
+        btnClearHist.addEventListener("click", () => {
+          requireAuth(() => {
+            if (confirm("Tem certeza que deseja limpar todo o histórico de alterações?")) {
+              historyLog = [];
+              saveStateToStorage();
+              renderHistoryModal();
+            }
+          });
+        });
+      }
+
+      // DELETE COMPANY
+      document.getElementById("btnDeleteSelectedCompany").addEventListener("click", () => {
+        if (!currentSelectedCode) return;
+        requireAuth(() => {
+          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+          if (!comp) return;
+
+          if (confirm(`Tem certeza que deseja excluir a empresa "${comp.name}" (CÓD: ${comp.code})?`)) {
+            const compCode = comp.code;
+            const compName = comp.name;
+            companies = companies.filter(c => String(c.code) !== String(currentSelectedCode));
+            delete closingData[currentSelectedCode];
+            addHistoryEntry(compCode, compName, "EMPRESA_EXCLUIDA", `Excluiu a empresa do sistema`);
+            saveStateToStorage();
+            
+            if (companies.length > 0) {
+              selectCompany(companies[0].code);
+            } else {
+              currentSelectedCode = null;
+              renderCompanyList();
+              renderRoutineTable();
+            }
+          }
+        });
+      });
       document.getElementById("btnEditTasksModal").addEventListener("click", () => {
         requireAuth(() => {
           renderTasksModalList();

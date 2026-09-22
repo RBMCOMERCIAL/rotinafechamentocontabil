@@ -1313,14 +1313,15 @@
     }
 
     
-        // REALTIME CLOUD SYNC (FIREBASE REALTIME DB)
+            // REALTIME CLOUD SYNC (FIREBASE REALTIME DB - ISOLATED NODE)
     let cloudDb = null;
     let isRemoteUpdate = false;
+    const FIREBASE_NODE_PATH = "rotina_fechamento_contabil_live";
 
     function initCloudSync() {
       try {
         const firebaseConfig = {
-          databaseURL: "https://rotinafechamentorbm-default-rtdb.firebaseio.com"
+          databaseURL: "https://rbm-opcao-2027-default-rtdb.firebaseio.com"
         };
         if (typeof firebase !== 'undefined' && firebase.apps) {
           if (!firebase.apps.length) {
@@ -1328,7 +1329,8 @@
           }
           cloudDb = firebase.database();
           
-          cloudDb.ref("closing_system_v8").on("value", snapshot => {
+          // Listen for realtime cloud updates from other computers
+          cloudDb.ref(FIREBASE_NODE_PATH).on("value", snapshot => {
             try {
               const data = snapshot.val();
               if (data && data.companies && Array.isArray(data.companies) && data.companies.length > 0) {
@@ -1348,28 +1350,28 @@
                 isRemoteUpdate = false;
               }
             } catch(err) {
-              // Ignore invalid remote payload
+              console.log("Cloud payload note:", err);
             }
           }, err => {
-            // Firebase offline or unconfigured fallback
+            console.log("Firebase sync note:", err);
           });
         }
       } catch(e) {
-        // Fallback to local mode
+        console.log("Local fallback mode active");
       }
     }
 
     function syncToCloud() {
       if (cloudDb && !isRemoteUpdate) {
         try {
-          cloudDb.ref("closing_system_v8").set({
+          cloudDb.ref(FIREBASE_NODE_PATH).set({
             companies,
             closingData,
             closingTasks,
             updatedAt: Date.now()
           });
         } catch(e) {
-          // Local fallback
+          console.log("Cloud push fallback:", e);
         }
       }
     }

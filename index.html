@@ -1276,17 +1276,27 @@
 
       if (storedCompanies) {
         try {
-          companies = JSON.parse(storedCompanies);
-          const existingCodes = new Set(companies.map(c => String(c.code)));
-          INITIAL_COMPANIES.forEach(initC => {
-            if (!existingCodes.has(String(initC.code))) {
-              companies.push(JSON.parse(JSON.stringify(initC)));
-            }
-          });
+          const parsed = JSON.parse(storedCompanies);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            companies = parsed;
+            const existingCodes = new Set(companies.map(c => String(c.code)));
+            INITIAL_COMPANIES.forEach(initC => {
+              if (!existingCodes.has(String(initC.code))) {
+                companies.push(JSON.parse(JSON.stringify(initC)));
+              }
+            });
+          } else {
+            companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+          }
         } catch(e) {
           companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
         }
       } else {
+        companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+      }
+
+      // Safety check: if companies is still empty, force load from INITIAL_COMPANIES
+      if (!companies || !Array.isArray(companies) || companies.length === 0) {
         companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
       }
 
@@ -1315,9 +1325,9 @@
 
       if (storedTasks) {
         try {
-          taskDefinitions = JSON.parse(storedTasks);
+          closingTasks = JSON.parse(storedTasks);
         } catch(e) {
-          taskDefinitions = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+          closingTasks = [...DEFAULT_CLOSING_TASKS];
         }
       }
     }
@@ -1707,7 +1717,8 @@
         }
       });
 
-      // Dynamic editing of metadata for current companydocument.getElementById("inputDtEntradaRbm").addEventListener("blur", (e) => {
+      // Dynamic editing of metadata for current company
+      document.getElementById("inputDtEntradaRbm").addEventListener("blur", (e) => {
         if (!currentSelectedCode) return;
         const comp = companies.find(c => c.code === currentSelectedCode);
         if (comp) {
@@ -1745,7 +1756,7 @@
             }
           });
         }
-      }});
+      }
 
       document.getElementById("inputDtEntradaRbm").addEventListener("change", (e) => {
         if (!currentSelectedCode) return;

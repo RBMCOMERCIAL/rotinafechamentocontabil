@@ -1691,6 +1691,37 @@
         }
         return;
       }
+      listContainer.innerHTML = filtered.map(c => {
+        const codeStr = String(c.code);
+        const isSelected = codeStr === String(currentSelectedCode);
+        const compMesSaida = c.mesSaida !== undefined && c.mesSaida !== null ? parseInt(c.mesSaida, 10) : -1;
+        const isExited = compMesSaida >= 0;
+
+        const colabDisplay = c.colaborador ? `<span class="text-blue-700 font-bold">${c.colaborador}</span>` : '<span class="text-amber-600 font-semibold bg-amber-50 px-1 rounded border border-amber-200">Pendente Atribuição</span>';
+
+        return `
+          <div onclick="selectCompany('${codeStr}')" 
+            class="p-2.5 rounded-lg border transition cursor-pointer flex items-center justify-between gap-2 ${isSelected ? 'bg-blue-50 border-blue-500 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'}">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}">
+                ${codeStr}
+              </span>
+              <div class="min-w-0">
+                <h4 class="font-semibold text-xs text-slate-800 truncate ${isExited ? 'line-through text-slate-400' : ''}">${c.name}</h4>
+                <div class="text-[10px] text-slate-500 flex items-center gap-1.5 flex-wrap">
+                  <span>Resp: ${colabDisplay}</span>
+                </div>
+              </div>
+            </div>
+            <div class="shrink-0 text-right">
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">
+                ${c.tax === "Simples Nacional Puro" ? "SN Puro" : c.tax === "Simples Nacional Híbrido" ? "SN Híbrido" : c.tax || "SN Puro"}
+              </span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
     let cloudDb = null;
     let isRemoteUpdate = false;
     const FIREBASE_NODE_PATH = "rotina_fechamento_contabil_live";
@@ -1951,8 +1982,6 @@
         yrData.tasks = cleanTasks;
       }
       return yrData;
-    }
-
     }
 
     function getShortTaxName(tax) {

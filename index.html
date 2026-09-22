@@ -277,15 +277,7 @@
               <option value="Sem Colaborador">[Sem Resp.]</option>
             </select>
           </div>
-          <div>
-            <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Tipo</label>
-            <select id="filterTipoEmpresa" class="w-full text-xs border border-slate-300 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
-              <option value="">Todos</option>
-              <option value="Abertura">Abertura</option>
-              <option value="Migrada">Migrada</option>
-              <option value="Não informado">Não informado</option>
-            </select>
-          </div>
+          
           <div>
             <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Enquad.</label>
             <select id="filterEnquadramento" class="w-full text-xs border border-slate-300 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
@@ -336,10 +328,7 @@
                 <span id="displayTaxBadge" class="font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200">
                   ENQUAD: --
                 </span>
-                <span id="displayTipoBadge" class="font-semibold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded border border-indigo-200">
-                  TIPO: --
-                </span>
-                <span>•</span>
+                
                 <span>Responsável: <strong id="displayColaboradorText" class="text-slate-800 font-bold">--</strong></span>
               </div>
             </div>
@@ -383,14 +372,7 @@
             </select>
           </div>
 
-          <div>
-            <label class="block font-semibold text-slate-500 mb-1">Tipo de Empresa</label>
-            <select id="inputCompanyTipo" class="w-full border border-slate-300 rounded-md p-1.5 bg-white text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-blue-500">
-              <option value="Não informado">Não informado</option>
-              <option value="Abertura">Abertura (Aberta na RBM)</option>
-              <option value="Migrada">Empresa Migrada</option>
-            </select>
-          </div>
+          
 
           <div>
             <label class="block font-semibold text-slate-500 mb-1">DT ENTRADA RBM</label>
@@ -627,14 +609,7 @@
               <option value="MEI">MEI - Microempreendedor</option>
             </select>
           </div>
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">Tipo de Empresa</label>
-            <select id="modalInputTipo" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none font-semibold">
-              <option value="Não informado">Não informado</option>
-              <option value="Abertura">Abertura (Aberta na RBM)</option>
-              <option value="Migrada">Empresa Migrada</option>
-            </select>
-          </div>
+          
         </div>
 
         <div>
@@ -1338,7 +1313,7 @@
     }
 
     
-    // REALTIME CLOUD SYNC (FIREBASE REALTIME DB)
+        // REALTIME CLOUD SYNC (FIREBASE REALTIME DB)
     let cloudDb = null;
     let isRemoteUpdate = false;
 
@@ -1353,35 +1328,34 @@
           }
           cloudDb = firebase.database();
           
-          // Listen for realtime cloud updates from other users
           cloudDb.ref("closing_system_v8").on("value", snapshot => {
-            const data = snapshot.val();
-            if (data) {
-              isRemoteUpdate = true;
-              if (data.companies && Array.isArray(data.companies) && data.companies.length > 0) {
+            try {
+              const data = snapshot.val();
+              if (data && data.companies && Array.isArray(data.companies) && data.companies.length > 0) {
+                isRemoteUpdate = true;
                 companies = data.companies;
-              }
-              if (data.closingData) {
-                closingData = data.closingData;
-              }
-              if (data.closingTasks && Array.isArray(data.closingTasks) && data.closingTasks.length > 0) {
-                closingTasks = data.closingTasks;
-              }
-              
-              // Local save without re-triggering remote push
-              localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
-              localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
-              localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
+                if (data.closingData) closingData = data.closingData;
+                if (data.closingTasks && Array.isArray(data.closingTasks) && data.closingTasks.length > 0) {
+                  closingTasks = data.closingTasks;
+                }
+                localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
+                localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
+                localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
 
-              renderCompanyList();
-              renderRoutineTable();
-              updateSelectedCompanyStats();
-              isRemoteUpdate = false;
+                renderCompanyList();
+                renderRoutineTable();
+                updateSelectedCompanyStats();
+                isRemoteUpdate = false;
+              }
+            } catch(err) {
+              // Ignore invalid remote payload
             }
+          }, err => {
+            // Firebase offline or unconfigured fallback
           });
         }
       } catch(e) {
-        console.log("Cloud Sync init note:", e);
+        // Fallback to local mode
       }
     }
 
@@ -1395,7 +1369,7 @@
             updatedAt: Date.now()
           });
         } catch(e) {
-          console.log("Cloud sync save note:", e);
+          // Local fallback
         }
       }
     }
@@ -1421,11 +1395,10 @@
     }
 
     // RENDER COMPANY LIST IN SIDEBAR
-    function renderCompanyList() {
+        function renderCompanyList() {
       const listContainer = document.getElementById("companyList");
       const searchVal = document.getElementById("sideSearchInput").value.toLowerCase().trim();
       const colabFilter = document.getElementById("filterColaborador").value;
-      const tipoFilter = document.getElementById("filterTipoEmpresa").value;
       const taxFilter = document.getElementById("filterEnquadramento").value;
       const statusSaidaFilter = document.getElementById("filterStatusSaida").value;
 
@@ -1437,13 +1410,6 @@
           matchesColab = !c.colaborador || c.colaborador.trim() === "";
         } else if (colabFilter) {
           matchesColab = c.colaborador === colabFilter;
-        }
-
-        let matchesTipo = true;
-        if (tipoFilter === "Não informado" || tipoFilter === "Sem Tipo") {
-          matchesTipo = !c.tipo || c.tipo === "Não informado" || c.tipo.trim() === "";
-        } else if (tipoFilter) {
-          matchesTipo = c.tipo === tipoFilter;
         }
 
         let matchesTax = true;
@@ -1459,7 +1425,7 @@
           matchesStatusSaida = compMesSaida >= 0;
         }
 
-        return matchesSearch && matchesColab && matchesTipo && matchesTax && matchesStatusSaida;
+        return matchesSearch && matchesColab && matchesTax && matchesStatusSaida;
       });
 
       document.getElementById("companyCountBadge").innerText = companies.length;
@@ -1481,35 +1447,26 @@
         const isExited = compMesSaida >= 0;
 
         const colabDisplay = c.colaborador ? `<span class="text-blue-700 font-bold">${c.colaborador}</span>` : '<span class="text-amber-600 font-semibold bg-amber-50 px-1 rounded border border-amber-200">Pendente Atribuição</span>';
-        const tipoVal = (c.tipo && c.tipo.trim() !== "") ? c.tipo : "Não informado";
-        const tipoBadgeClass = tipoVal === "Abertura" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                               tipoVal === "Migrada" ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
-                               "bg-slate-100 text-slate-600 border-slate-200";
-        const tipoBadge = `<span class="text-[9px] font-bold px-1 py-0.2 rounded border ${tipoBadgeClass} mr-1">${tipoVal}</span>`;
-        const exitBadge = isExited ? `<span class="text-[9px] font-bold px-1 py-0.2 rounded bg-slate-200 text-slate-700 border border-slate-300 mr-1">⚪ Saída (${MONTH_NAMES[compMesSaida]})</span>` : '';
 
         return `
           <div onclick="selectCompany('${c.code}')" 
-            class="p-3 cursor-pointer transition flex items-center justify-between border-l-4 ${isExited ? 'bg-slate-100/90 border-slate-400 opacity-80' : isSelected ? 'bg-blue-50/90 border-blue-600 shadow-sm' : 'hover:bg-slate-50 border-transparent'}">
-            
-            <div class="flex items-center space-x-2.5 min-w-0">
-              <span class="px-2 py-0.5 font-bold text-[11px] rounded ${isExited ? 'bg-slate-400 text-white' : isSelected ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}">
+            class="p-2.5 rounded-lg border transition cursor-pointer flex items-center justify-between gap-2 ${isSelected ? 'bg-blue-50 border-blue-500 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'}">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}">
                 ${c.code}
               </span>
-              <div class="truncate">
-                <h4 class="font-bold text-xs ${isExited ? 'text-slate-600 line-through' : isSelected ? 'text-blue-900' : 'text-slate-800'} truncate">${c.name}</h4>
-                <p class="text-[10px] text-slate-500 truncate">
-                  ${exitBadge}${tipoBadge} Resp: ${colabDisplay}
-                </p>
+              <div class="min-w-0">
+                <h4 class="font-semibold text-xs text-slate-800 truncate ${isExited ? 'line-through text-slate-400' : ''}">${c.name}</h4>
+                <div class="text-[10px] text-slate-500 flex items-center gap-1.5 flex-wrap">
+                  <span>Resp: ${colabDisplay}</span>
+                </div>
               </div>
             </div>
-
-            <div class="text-right flex-shrink-0">
-              <span class="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border ${isExited ? 'bg-slate-200 text-slate-600 border-slate-300' : getTaxBadgeClass(c.tax)}">
-                ${getShortTaxName(c.tax)}
+            <div class="shrink-0 text-right">
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">
+                ${c.tax === "Simples Nacional Puro" ? "SN Puro" : c.tax === "Simples Nacional Híbrido" ? "SN Híbrido" : c.tax || "SN Puro"}
               </span>
             </div>
-
           </div>`;
       }).join('');
     }
@@ -1555,12 +1512,10 @@
       if (compMesSaida >= 0) {
         tipoText += ` • <span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded border border-slate-300">⚪ SAIU DA RBM (${MONTH_NAMES[compMesSaida]})</span>`;
       }
-      document.getElementById("displayTipoBadge").innerHTML = tipoText;
       document.getElementById("displayColaboradorText").innerHTML = company.colaborador ? `<span class="text-blue-700">${company.colaborador}</span>` : '<span class="text-amber-600 italic">Em branco (Clique para atribuir)</span>';
 
       // Populate inputs
       document.getElementById("inputCompanyColaborador").value = company.colaborador || "";
-      document.getElementById("inputCompanyTipo").value = company.tipo || "Não informado";
       document.getElementById("inputCompanyMesSaida").value = compMesSaida;
       document.getElementById("inputDtEntradaRbm").value = company.dtEntradaRbm || "";
       document.getElementById("inputCompanyTax").value = company.tax || "Simples Nacional Puro";
@@ -1734,8 +1689,7 @@
       // Top & Side Search Filter
       document.getElementById("sideSearchInput").addEventListener("input", renderCompanyList);
       document.getElementById("filterColaborador").addEventListener("change", renderCompanyList);
-      document.getElementById("filterTipoEmpresa").addEventListener("change", renderCompanyList);
-      document.getElementById("filterEnquadramento").addEventListener("change", renderCompanyList);
+document.getElementById("filterEnquadramento").addEventListener("change", renderCompanyList);
       document.getElementById("filterStatusSaida").addEventListener("change", renderCompanyList);
       document.getElementById("statMonthSelect").addEventListener("change", updateSelectedCompanyStats);
 
@@ -1863,19 +1817,7 @@
         });
       });
 
-      document.getElementById("inputCompanyTipo").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const newTipo = e.target.value;
-        requireAuth(() => {
-          const comp = companies.find(c => c.code === currentSelectedCode);
-          if (comp) {
-            comp.tipo = newTipo;
-            saveStateToStorage();
-            renderCompanyList();
-            document.getElementById("displayTipoBadge").innerText = `TIPO: ${comp.tipo}`;
-          }
-        });
-      });
+
 
       document.getElementById("inputCompanyTax").addEventListener("change", (e) => {
         if (!currentSelectedCode) return;
@@ -1964,7 +1906,6 @@
           document.getElementById("modalInputCode").value = "";
           document.getElementById("modalInputName").value = "";
           document.getElementById("modalInputTax").value = "Simples Nacional Puro";
-          document.getElementById("modalInputTipo").value = "Não informado";
           document.getElementById("modalInputColaborador").value = "";
           document.getElementById("modalInputDtEntradaRbm").value = "";
           document.getElementById("modalInputMesSaida").value = "-1";
@@ -1983,7 +1924,6 @@
           document.getElementById("modalInputCode").value = comp.code;
           document.getElementById("modalInputName").value = comp.name;
           document.getElementById("modalInputTax").value = comp.tax || "Simples Nacional Puro";
-          document.getElementById("modalInputTipo").value = comp.tipo || "Não informado";
           document.getElementById("modalInputColaborador").value = comp.colaborador || "";
           document.getElementById("modalInputDtEntradaRbm").value = comp.dtEntradaRbm || "";
           document.getElementById("modalInputMesSaida").value = (comp.mesSaida !== undefined && comp.mesSaida !== null) ? comp.mesSaida : "-1";
@@ -2004,7 +1944,6 @@
         const newCode = document.getElementById("modalInputCode").value.trim();
         const name = document.getElementById("modalInputName").value.trim();
         const tax = document.getElementById("modalInputTax").value;
-        const tipo = document.getElementById("modalInputTipo").value || "Não informado";
         const colab = document.getElementById("modalInputColaborador").value;
         const dtEntradaRbm = document.getElementById("modalInputDtEntradaRbm").value.trim();
         const mesSaida = parseInt(document.getElementById("modalInputMesSaida").value, 10);
@@ -2016,8 +1955,7 @@
             comp.code = newCode;
             comp.name = name;
             comp.tax = tax;
-            comp.tipo = tipo;
-            comp.colaborador = colab;
+comp.colaborador = colab;
             comp.dtEntradaRbm = dtEntradaRbm;
             comp.mesSaida = mesSaida;
 

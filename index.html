@@ -574,13 +574,6 @@
             </span>
             <i class="fa-solid fa-chevron-right text-xs"></i>
           </button>
-
-          <!-- DATE INPUT FOR REALIZADO -->
-          <div id="dateInputContainer" class="pl-4 pt-1 space-y-1">
-            <label class="block text-[11px] font-semibold text-slate-600">Data da Conclusão (DD/MM):</label>
-            <input type="text" id="modalCompletionDate" placeholder="Ex: 15/02" 
-              class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-          </div>
         </div>
       </div>
 
@@ -1548,7 +1541,7 @@
             labelText = "Inativa / Saída";
           } else if (cellData.status === 'REALIZADO' || cellData.status === 'CONCLUIDO') {
             cellStyleClass = "status-realizado";
-            labelText = cellData.date ? `até ${cellData.date}` : "realizado";
+            labelText = "_/_";
           } else if (cellData.status === 'ANDAMENTO' || cellData.status === 'EM_ANDAMENTO') {
             cellStyleClass = "status-andamento";
             labelText = "em andamento";
@@ -1588,8 +1581,6 @@
 
         const yearData = getCompanyYearData(currentSelectedCode, currentYear);
         const cellData = (yearData.tasks[taskIdx] && yearData.tasks[taskIdx][monthIdx]) || { status: 'DASH', date: '' };
-
-        document.getElementById("modalCompletionDate").value = cellData.date || getCurrentShortDate();
 
         document.getElementById("cellModal").style.display = "flex";
       });
@@ -1716,38 +1707,7 @@
         }
       });
 
-      // Dynamic editing of metadata for current company
-      document.getElementById("inputCompanyColaborador").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const comp = companies.find(c => c.code === currentSelectedCode);
-        if (comp) {
-          comp.colaborador = e.target.value;
-          saveStateToStorage();
-          selectCompany(currentSelectedCode);
-        }
-      });
-
-      document.getElementById("inputCompanyTipo").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const comp = companies.find(c => c.code === currentSelectedCode);
-        if (comp) {
-          comp.tipo = e.target.value;
-          saveStateToStorage();
-          selectCompany(currentSelectedCode);
-        }
-      });
-
-      document.getElementById("inputCompanyTax").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const comp = companies.find(c => c.code === currentSelectedCode);
-        if (comp) {
-          comp.tax = e.target.value;
-          saveStateToStorage();
-          selectCompany(currentSelectedCode);
-        }
-      });
-
-      document.getElementById("inputDtEntradaRbm").addEventListener("blur", (e) => {
+      // Dynamic editing of metadata for current companydocument.getElementById("inputDtEntradaRbm").addEventListener("blur", (e) => {
         if (!currentSelectedCode) return;
         const comp = companies.find(c => c.code === currentSelectedCode);
         if (comp) {
@@ -1785,46 +1745,7 @@
             }
           });
         }
-      }
-
-      document.getElementById("inputCompanyColaborador").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const newColab = e.target.value;
-        requireAuth(() => {
-          const comp = companies.find(c => c.code === currentSelectedCode);
-          if (comp) {
-            comp.colaborador = newColab;
-            saveStateToStorage();
-            selectCompany(currentSelectedCode);
-          }
-        });
-      });
-
-      document.getElementById("inputCompanyTipo").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const newTipo = e.target.value;
-        requireAuth(() => {
-          const comp = companies.find(c => c.code === currentSelectedCode);
-          if (comp) {
-            comp.tipo = newTipo;
-            saveStateToStorage();
-            selectCompany(currentSelectedCode);
-          }
-        });
-      });
-
-      document.getElementById("inputCompanyTax").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const newTax = e.target.value;
-        requireAuth(() => {
-          const comp = companies.find(c => c.code === currentSelectedCode);
-          if (comp) {
-            comp.tax = newTax;
-            saveStateToStorage();
-            selectCompany(currentSelectedCode);
-          }
-        });
-      });
+      }});
 
       document.getElementById("inputDtEntradaRbm").addEventListener("change", (e) => {
         if (!currentSelectedCode) return;
@@ -1845,6 +1766,48 @@
           const yearData = getCompanyYearData(currentSelectedCode, currentYear);
           yearData.observations = newObs;
           saveStateToStorage();
+        });
+      });
+
+      document.getElementById("inputCompanyColaborador").addEventListener("change", (e) => {
+        if (!currentSelectedCode) return;
+        const newColab = e.target.value;
+        requireAuth(() => {
+          const comp = companies.find(c => c.code === currentSelectedCode);
+          if (comp) {
+            comp.colaborador = newColab;
+            saveStateToStorage();
+            renderCompanyList();
+            document.getElementById("displayColaboradorText").innerText = comp.colaborador || "Em branco (Clique para atribuir)";
+          }
+        });
+      });
+
+      document.getElementById("inputCompanyTipo").addEventListener("change", (e) => {
+        if (!currentSelectedCode) return;
+        const newTipo = e.target.value;
+        requireAuth(() => {
+          const comp = companies.find(c => c.code === currentSelectedCode);
+          if (comp) {
+            comp.tipo = newTipo;
+            saveStateToStorage();
+            renderCompanyList();
+            document.getElementById("displayTipoBadge").innerText = `TIPO: ${comp.tipo}`;
+          }
+        });
+      });
+
+      document.getElementById("inputCompanyTax").addEventListener("change", (e) => {
+        if (!currentSelectedCode) return;
+        const newTax = e.target.value;
+        requireAuth(() => {
+          const comp = companies.find(c => c.code === currentSelectedCode);
+          if (comp) {
+            comp.tax = newTax;
+            saveStateToStorage();
+            renderCompanyList();
+            document.getElementById("displayTaxBadge").innerText = `ENQUAD: ${comp.tax}`;
+          }
         });
       });
 
@@ -1901,13 +1864,11 @@
         if (!activeCellModalData || !currentSelectedCode) return;
         const { taskIdx, monthIdx } = activeCellModalData;
         const yearData = getCompanyYearData(currentSelectedCode, currentYear);
-        const compDate = document.getElementById("modalCompletionDate").value.trim() || getCurrentShortDate();
-
         if (!yearData.tasks[taskIdx]) yearData.tasks[taskIdx] = {};
         
         yearData.tasks[taskIdx][monthIdx] = {
           status: modalSelectedStatus,
-          date: modalSelectedStatus === 'REALIZADO' ? compDate : ''
+          status: modalSelectedStatus
         };
 
         saveStateToStorage();

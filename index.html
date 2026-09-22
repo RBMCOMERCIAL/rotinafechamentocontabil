@@ -1371,7 +1371,7 @@
                   c.tax = normalizeTaxName(c.tax);
                 });
 
-                if (data.closingData) closingData = data.closingData;
+                if (data.closingData) closingData = sanitizeClosingData(data.closingData);
                 if (data.closingTasks && Array.isArray(data.closingTasks) && data.closingTasks.length > 0) {
                   closingTasks = data.closingTasks;
                 }
@@ -1437,16 +1437,77 @@
       updateSelectedCompanyStats();
     }
 
+    function sanitizeClosingData(raw) {
+      if (!raw) return {};
+      let out = {};
+      if (Array.isArray(raw)) {
+        raw.forEach((item, idx) => {
+          if (item) out[String(idx)] = item;
+        });
+      } else if (typeof raw === "object") {
+        out = JSON.parse(JSON.stringify(raw));
+      }
+      Object.keys(out).forEach(code => {
+        if (out[code]) {
+          Object.keys(out[code]).forEach(yr => {
+            const yrData = out[code][yr];
+            if (yrData && yrData.tasks) {
+              if (Array.isArray(yrData.tasks)) {
+                const cleanTasks = {};
+                yrData.tasks.forEach((taskVal, tIdx) => {
+                  if (taskVal) {
+                    if (Array.isArray(taskVal)) {
+                      const cleanMonths = {};
+                      taskVal.forEach((mVal, mIdx) => {
+                        if (mVal) cleanMonths[String(mIdx)] = mVal;
+                      });
+                      cleanTasks[String(tIdx)] = cleanMonths;
+                    } else if (typeof taskVal === "object") {
+                      cleanTasks[String(tIdx)] = { ...taskVal };
+                    }
+                  }
+                });
+                yrData.tasks = cleanTasks;
+              }
+            }
+          });
+        }
+      });
+      return out;
+    }
+
     // HELPER: GET CLOSING RECORD FOR COMPANY & YEAR
     function getCompanyYearData(code, year) {
-      if (!closingData[code]) closingData[code] = {};
-      if (!closingData[code][year]) {
-        closingData[code][year] = {
+      if (!closingData || typeof closingData !== "object" || Array.isArray(closingData)) {
+        closingData = sanitizeClosingData(closingData);
+      }
+      const cKey = String(code);
+      if (!closingData[cKey]) closingData[cKey] = {};
+      if (!closingData[cKey][year]) {
+        closingData[cKey][year] = {
           observations: "",
           tasks: {}
         };
       }
-      return closingData[code][year];
+      const yrData = closingData[cKey][year];
+      if (Array.isArray(yrData.tasks)) {
+        const cleanTasks = {};
+        yrData.tasks.forEach((tVal, tIdx) => {
+          if (tVal) {
+            if (Array.isArray(tVal)) {
+              const cleanMonths = {};
+              tVal.forEach((mVal, mIdx) => {
+                if (mVal) cleanMonths[String(mIdx)] = mVal;
+              });
+              cleanTasks[String(tIdx)] = cleanMonths;
+            } else if (typeof tVal === "object") {
+              cleanTasks[String(tIdx)] = { ...tVal };
+            }
+          }
+        });
+        yrData.tasks = cleanTasks;
+      }
+      return yrData;
     }
 
     // RENDER COMPANY LIST IN SIDEBAR

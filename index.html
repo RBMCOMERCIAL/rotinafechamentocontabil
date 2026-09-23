@@ -155,6 +155,12 @@
           </select>
         </div>
 
+        <!-- PROMINENT RELATÓRIO DE CONCLUSÃO BUTTON IN TOP HEADER -->
+        <button id="btnOpenReportModalHeader" onclick="openReportModal()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-lg shadow-md flex items-center gap-1.5 transition no-print border border-emerald-400 cursor-pointer hover:scale-[1.02] transform" title="Abrir Relatório Geral de Fechamento Contábil">
+          <i class="fa-solid fa-chart-pie text-white text-sm"></i>
+          <span>📊 Relatório de Conclusão</span>
+        </button>
+
         <!-- STATUS SUMMARY FOR THE SELECTED COMPANY ONLY -->
         <div class="flex items-center space-x-4 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-800">
           <div class="flex items-center space-x-1 font-semibold text-slate-700">
@@ -1349,32 +1355,88 @@
         return;
       }
 
+      const statSel = document.getElementById("statMonthSelect");
+      const currentMonthIndex = (statSel && statSel.value !== "" && !isNaN(parseInt(statSel.value, 10))) ? parseInt(statSel.value, 10) : 0;
+
       listContainer.innerHTML = filtered.map(c => {
         const codeStr = String(c.code);
         const isSelected = codeStr === String(currentSelectedCode);
         const compMesSaida = c.mesSaida !== undefined && c.mesSaida !== null ? parseInt(c.mesSaida, 10) : -1;
         const isExited = compMesSaida >= 0;
 
-        const colabDisplay = c.colaborador ? `<span class="text-blue-700 font-bold">${c.colaborador}</span>` : '<span class="text-amber-600 font-semibold bg-amber-50 px-1 rounded border border-amber-200">Pendente Atribuição</span>';
+        // Check 100% completion status for the company for current exercise & month
+        const yearData = getCompanyYearData(codeStr, currentYear);
+        let doneTasks = 0;
+        const totalTasks = closingTasks.length;
+
+        closingTasks.forEach((_, taskIdx) => {
+          const cell = (yearData.tasks && yearData.tasks[taskIdx] && yearData.tasks[taskIdx][currentMonthIndex]) || { status: 'DASH' };
+          if (cell.status === 'REALIZADO' || cell.status === 'CONCLUIDO' || cell.status === 'OBSERVACAO' || cell.status === 'OBS' || cell.status === 'CINZA') {
+            doneTasks++;
+          }
+        });
+
+        const isFullyDone = (doneTasks === totalTasks);
+
+        const colabDisplay = c.colaborador ? `<span class="${isFullyDone ? 'text-emerald-800 font-extrabold' : 'text-blue-700 font-bold'}">${c.colaborador}</span>` : '<span class="text-amber-600 font-semibold bg-amber-50 px-1 rounded border border-amber-200">Pendente Atribuição</span>';
+
+        let cardStyle = "";
+        let badgeCodeStyle = "";
+        let taxBadgeStyle = "";
+
+        if (isSelected) {
+          cardStyle = "bg-blue-50 border-blue-500 shadow-sm border-l-4 border-l-blue-600";
+          badgeCodeStyle = "bg-blue-600 text-white";
+          taxBadgeStyle = "bg-blue-100 text-blue-800 border-blue-200";
+        } else if (isFullyDone) {
+          cardStyle = "bg-emerald-50/90 border-emerald-300 border-l-4 border-l-emerald-500 shadow-2xs hover:border-emerald-400";
+          badgeCodeStyle = "bg-emerald-600 text-white font-extrabold";
+          taxBadgeStyle = "bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold";
+        } else {
+          cardStyle = doneTasks > 0 ? "bg-slate-50/90 border-slate-300 border-l-2 border-l-emerald-400 hover:border-slate-400" : "bg-white border-slate-200 hover:border-slate-300";
+          badgeCodeStyle = "bg-slate-100 text-slate-600";
+          taxBadgeStyle = "bg-slate-50 text-slate-600 border-slate-200";
+        }
+
+        const nameDisplayHtml = isFullyDone 
+          ? `<h4 class="font-extrabold text-xs text-emerald-950 truncate flex items-center gap-1.5 ${isExited ? 'line-through text-slate-400' : ''}">
+               <i class="fa-solid fa-circle-check text-emerald-600 text-xs"></i>
+               <span>${c.name}</span>
+             </h4>`
+          : `<h4 class="font-semibold text-xs text-slate-800 truncate ${isExited ? 'line-through text-slate-400' : ''}">${c.name}</h4>`;
+
+        const pctDone = Math.round((doneTasks / totalTasks) * 100);
+
+        const completeBadgeHtml = isFullyDone
+          ? `<span class="text-[9px] font-black px-1.5 py-0.5 rounded border bg-emerald-600 text-white border-emerald-700 shadow-2xs flex items-center gap-1">
+               <i class="fa-solid fa-check text-[9px]"></i>
+               <span>Concluída</span>
+             </span>`
+          : doneTasks > 0
+          ? `<span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded border bg-emerald-50 text-emerald-800 border-emerald-200 flex items-center gap-1">
+               <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+               <span>${pctDone}% (${doneTasks}/${totalTasks})</span>
+             </span>`
+          : `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ${taxBadgeStyle}">
+               ${c.tax === "Simples Nacional Puro" ? "SN Puro" : c.tax === "Simples Nacional Híbrido" ? "SN Híbrido" : c.tax || "SN Puro"}
+             </span>`;
 
         return `
           <div onclick="selectCompany('${codeStr}')" 
-            class="p-2.5 rounded-lg border transition cursor-pointer flex items-center justify-between gap-2 ${isSelected ? 'bg-blue-50 border-blue-500 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'}">
+            class="p-2.5 rounded-lg border transition cursor-pointer flex items-center justify-between gap-2 ${cardStyle}">
             <div class="flex items-center gap-2.5 min-w-0">
-              <span class="w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}">
+              <span class="w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${badgeCodeStyle}">
                 ${codeStr}
               </span>
               <div class="min-w-0">
-                <h4 class="font-semibold text-xs text-slate-800 truncate ${isExited ? 'line-through text-slate-400' : ''}">${c.name}</h4>
-                <div class="text-[10px] text-slate-500 flex items-center gap-1.5 flex-wrap">
+                ${nameDisplayHtml}
+                <div class="text-[10px] text-slate-500 flex items-center gap-1.5 flex-wrap mt-0.5">
                   <span>Resp: ${colabDisplay}</span>
                 </div>
               </div>
             </div>
             <div class="shrink-0 text-right">
-              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">
-                ${c.tax === "Simples Nacional Puro" ? "SN Puro" : c.tax === "Simples Nacional Híbrido" ? "SN Híbrido" : c.tax || "SN Puro"}
-              </span>
+              ${completeBadgeHtml}
             </div>
           </div>`;
       }).join('');
@@ -1647,6 +1709,275 @@
       renderRoutineTable();
     }
 
+    
+    
+    function openBatchModal(initialMonths = null, initialTasks = null) {
+      if (!currentSelectedCode) {
+        alert("Selecione uma empresa antes de aplicar alterações em lote.");
+        return;
+      }
+      requireAuth(() => {
+        const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+        const compNameEl = document.getElementById("batchCompanyName");
+        if (compNameEl) compNameEl.innerText = comp ? `${comp.code} - ${comp.name}` : currentSelectedCode;
+
+        renderBatchMonthsCheckboxes(initialMonths);
+        renderBatchTasksCheckboxes(initialTasks);
+
+        const bObsArea = document.getElementById("batchObsArea");
+        const bStatusSel = document.getElementById("batchStatusSelect");
+        if (bObsArea && bStatusSel) {
+          bObsArea.style.display = bStatusSel.value === 'OBSERVACAO' ? 'block' : 'none';
+        }
+
+        const modal = document.getElementById("batchEditModal");
+        if (modal) modal.classList.remove("hidden");
+      });
+    }
+
+    function closeBatchModal() {
+      const modal = document.getElementById("batchEditModal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function openColumnBatchModal(monthIdx) {
+      openBatchModal([monthIdx], null);
+    }
+
+    function openRowBatchModal(taskIdx) {
+      openBatchModal(null, [taskIdx]);
+    }
+
+    function renderBatchMonthsCheckboxes(preSelectedMonths = null) {
+      const container = document.getElementById("batchMonthsContainer");
+      if (!container) return;
+      container.innerHTML = MONTH_NAMES.map((mName, mIdx) => {
+        const isChecked = !preSelectedMonths || preSelectedMonths.includes(mIdx);
+        return `
+          <label class="flex items-center gap-1.5 p-1.5 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-blue-300 transition">
+            <input type="checkbox" class="batch-month-checkbox accent-blue-600" value="${mIdx}" ${isChecked ? 'checked' : ''}>
+            <span class="font-bold text-slate-800 text-[11px]">${mName}</span>
+          </label>`;
+      }).join('');
+    }
+
+    function renderBatchTasksCheckboxes(preSelectedTasks = null) {
+      const container = document.getElementById("batchTasksContainer");
+      if (!container) return;
+      container.innerHTML = closingTasks.map((tName, tIdx) => {
+        const isChecked = !preSelectedTasks || preSelectedTasks.includes(tIdx);
+        return `
+          <label class="flex items-center gap-2 p-1.5 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-blue-300 transition">
+            <input type="checkbox" class="batch-task-checkbox accent-blue-600" value="${tIdx}" ${isChecked ? 'checked' : ''}>
+            <span class="font-bold text-slate-500 w-5 font-mono text-[10px]">${tIdx + 1}.</span>
+            <span class="font-semibold text-slate-800 text-xs truncate">${tName}</span>
+          </label>`;
+      }).join('');
+    }
+
+    function applyBatchModalChanges() {
+      if (!currentSelectedCode) return;
+      const statusSel = document.getElementById("batchStatusSelect");
+      const targetStatus = statusSel ? statusSel.value : 'REALIZADO';
+      
+      const obsInp = document.getElementById("batchObsInput");
+      const obsErr = document.getElementById("batchObsErrorMsg");
+      let obsTxt = obsInp ? obsInp.value.trim() : "";
+
+      if (targetStatus === 'OBSERVACAO') {
+        if (!obsTxt || obsTxt === "") {
+          if (obsErr) obsErr.classList.remove("hidden");
+          if (obsInp) obsInp.focus();
+          return;
+        }
+      }
+      if (obsErr) obsErr.classList.add("hidden");
+
+      const selectedMonths = Array.from(document.querySelectorAll('.batch-month-checkbox:checked')).map(cb => parseInt(cb.value, 10));
+      const selectedTasks = Array.from(document.querySelectorAll('.batch-task-checkbox:checked')).map(cb => parseInt(cb.value, 10));
+
+      if (selectedMonths.length === 0) {
+        alert("Selecione ao menos um mês para aplicar a alteração em lote.");
+        return;
+      }
+      if (selectedTasks.length === 0) {
+        alert("Selecione ao menos uma etapa para aplicar a alteração em lote.");
+        return;
+      }
+
+      const yearData = getCompanyYearData(currentSelectedCode, currentYear);
+      if (!yearData.tasks) yearData.tasks = {};
+
+      selectedTasks.forEach(taskIdx => {
+        if (!yearData.tasks[taskIdx]) yearData.tasks[taskIdx] = {};
+        selectedMonths.forEach(monthIdx => {
+          yearData.tasks[taskIdx][monthIdx] = {
+            status: targetStatus,
+            obs: targetStatus === 'OBSERVACAO' ? obsTxt : '',
+            date: getCurrentShortDate()
+          };
+        });
+      });
+
+      const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+      addHistoryEntry(currentSelectedCode, comp ? comp.name : "", "CHECKLIST", `Atualização em lote: ${selectedTasks.length} etapas x ${selectedMonths.length} meses alterados para "${targetStatus}"`);
+
+      saveStateToStorage();
+      renderRoutineTable();
+      renderCompanyList();
+      updateSelectedCompanyStats();
+      closeBatchModal();
+    }
+
+    function openReportModal() {
+      const yearInp = document.getElementById("reportYearInput");
+      if (yearInp) yearInp.value = currentYear;
+      renderReportModal();
+      const modal = document.getElementById("reportModal");
+      if (modal) modal.classList.remove("hidden");
+    }
+
+    function closeReportModal() {
+      const modal = document.getElementById("reportModal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function renderReportModal() {
+      const yearInp = document.getElementById("reportYearInput");
+      const year = yearInp ? parseInt(yearInp.value, 10) : currentYear;
+      const monthSel = document.getElementById("reportMonthSelect");
+      const monthVal = monthSel ? monthSel.value : "ALL";
+      let monthsToAudit = [0];
+      if (monthVal === "ALL" || monthVal === "-1") monthsToAudit = [0,1,2,3,4,5,6,7,8,9,10,11];
+      else if (monthVal === "Q1") monthsToAudit = [0,1,2];
+      else if (monthVal === "Q2") monthsToAudit = [3,4,5];
+      else if (monthVal === "Q3") monthsToAudit = [6,7,8];
+      else if (monthVal === "Q4") monthsToAudit = [9,10,11];
+      else if (monthVal === "S1") monthsToAudit = [0,1,2,3,4,5];
+      else if (monthVal === "S2") monthsToAudit = [6,7,8,9,10,11];
+      else {
+        const parsed = parseInt(monthVal, 10);
+        monthsToAudit = !isNaN(parsed) ? [parsed] : [0];
+      }
+      const statusFilt = document.getElementById("reportStatusFilter");
+      const statusVal = statusFilt ? statusFilt.value : "TODAS";
+      const colabFilt = document.getElementById("reportColabFilter");
+      const colabVal = colabFilt ? colabFilt.value : "";
+
+      let doneCompanies = 0;
+      let andamentoCompanies = 0;
+      let pendingCompanies = 0;
+      const totalTasks = closingTasks.length; // 21
+
+      const rows = [];
+
+      companies.forEach(c => {
+        if (colabVal && c.colaborador !== colabVal) return;
+
+        const yearData = getCompanyYearData(c.code, year);
+        let doneTasks = 0;
+        let andamentoTasks = 0;
+        let pendingTasks = 0;
+
+        const totalTargetCells = closingTasks.length * monthsToAudit.length;
+        closingTasks.forEach((_, taskIdx) => {
+          monthsToAudit.forEach(m => {
+            const cell = (yearData.tasks && yearData.tasks[taskIdx] && yearData.tasks[taskIdx][m]) || { status: 'DASH' };
+            if (cell.status === 'REALIZADO' || cell.status === 'CONCLUIDO' || cell.status === 'OBSERVACAO' || cell.status === 'OBS' || cell.status === 'CINZA') {
+              doneTasks++;
+            } else if (cell.status === 'ANDAMENTO' || cell.status === 'EM_ANDAMENTO') {
+              andamentoTasks++;
+            } else if (cell.status === 'PENDENTE') {
+              pendingTasks++;
+            }
+          });
+        });
+
+        const isFullyDone = (doneTasks === totalTasks);
+        if (isFullyDone) doneCompanies++;
+        else if (andamentoTasks > 0 || doneTasks > 0) andamentoCompanies++;
+        else pendingCompanies++;
+
+        if (statusVal === "CONCLUIDAS" && !isFullyDone) return;
+        if (statusVal === "PENDENTES" && isFullyDone) return;
+
+        const pct = totalTargetCells > 0 ? Math.round((doneTasks / totalTargetCells) * 100) : 0;
+
+        let statusBadgeHtml = '';
+        if (isFullyDone) {
+          statusBadgeHtml = `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 font-extrabold rounded-full text-[11px] inline-flex items-center gap-1">
+            <i class="fa-solid fa-circle-check text-emerald-600"></i> CONCLUÍDO (100%)
+          </span>`;
+        } else if (andamentoTasks > 0 || doneTasks > 0) {
+          statusBadgeHtml = `<span class="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 font-extrabold rounded-full text-[11px] inline-flex items-center gap-1">
+            <i class="fa-solid fa-spinner text-amber-600"></i> Em Andamento (${pct}%)
+          </span>`;
+        } else {
+          statusBadgeHtml = `<span class="px-2.5 py-1 bg-rose-100 text-rose-800 border border-rose-300 font-extrabold rounded-full text-[11px] inline-flex items-center gap-1">
+            <i class="fa-solid fa-circle-exclamation text-rose-600"></i> Pendente (0%)
+          </span>`;
+        }
+
+        rows.push(`
+          <tr class="hover:bg-slate-50 transition ${isFullyDone ? 'bg-emerald-50/40' : ''}">
+            <td class="py-2.5 px-3 font-bold text-slate-900">${c.code}</td>
+            <td class="py-2.5 px-3 font-extrabold text-slate-800">${c.name}</td>
+            <td class="py-2.5 px-3 text-slate-600">${c.tax || "SN Puro"}</td>
+            <td class="py-2.5 px-3 font-bold text-blue-700">${c.colaborador || "—"}</td>
+            <td class="py-2.5 px-3 text-center font-bold">${doneTasks}/${totalTasks} (${pct}%)</td>
+            <td class="py-2.5 px-3 text-center">${statusBadgeHtml}</td>
+          </tr>
+        `);
+      });
+
+      const kDone = document.getElementById("kpiReportDone"); if (kDone) kDone.innerText = doneCompanies;
+      const kAnd = document.getElementById("kpiReportAndamento"); if (kAnd) kAnd.innerText = andamentoCompanies;
+      const kPend = document.getElementById("kpiReportPending"); if (kPend) kPend.innerText = pendingCompanies;
+      const kTot = document.getElementById("kpiReportTotal"); if (kTot) kTot.innerText = doneCompanies + andamentoCompanies + pendingCompanies;
+
+      const tbody = document.getElementById("reportTableBody");
+      if (tbody) {
+        tbody.innerHTML = rows.length > 0 ? rows.join('') : `<tr><td colspan="6" class="p-6 text-center text-slate-400 font-bold">Nenhuma empresa encontrada com os filtros selecionados.</td></tr>`;
+      }
+    }
+
+    function exportReportCSV() {
+      const yearInp = document.getElementById("reportYearInput");
+      const year = yearInp ? parseInt(yearInp.value, 10) : currentYear;
+      const monthSel = document.getElementById("reportMonthSelect");
+      const month = monthSel ? parseInt(monthSel.value, 10) : 0;
+      const monthName = MONTH_NAMES[month] || "Mes";
+
+      let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+      csvContent += `Relatorio de Fechamento Contabil RBM - ${monthName} de ${year}\n`;
+      csvContent += "Codigo;Empresa;Enquadramento;Responsavel;Tarefas Concluidas;Progresso;Situacao\n";
+
+      const totalTasks = closingTasks.length;
+
+      companies.forEach(c => {
+        const yearData = getCompanyYearData(c.code, year);
+        let doneTasks = 0;
+        closingTasks.forEach((_, taskIdx) => {
+          const cell = (yearData.tasks && yearData.tasks[taskIdx] && yearData.tasks[taskIdx][month]) || { status: 'DASH' };
+          if (cell.status === 'REALIZADO' || cell.status === 'CONCLUIDO' || cell.status === 'OBSERVACAO' || cell.status === 'OBS' || cell.status === 'CINZA') {
+            doneTasks++;
+          }
+        });
+        const pct = Math.round((doneTasks / totalTasks) * 100);
+        const statusTxt = doneTasks === totalTasks ? "CONCLUIDO (100%)" : doneTasks > 0 ? "EM ANDAMENTO" : "PENDENTE";
+
+        csvContent += `"${c.code}";"${c.name}";"${c.tax || 'SN Puro'}";"${c.colaborador || ''}";"${doneTasks}/${totalTasks}";"${pct}%";"${statusTxt}"\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Relatorio_Fechamento_Contabil_${monthName}_${year}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
     function renderRoutineTable() {
       const tbody = document.getElementById("routineTableBody");
       if (!tbody) return;
@@ -1661,12 +1992,13 @@
       closingTasks.forEach((taskName, taskIdx) => {
         html += `
           <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-            <td class="py-2 px-3 font-semibold text-slate-700 text-xs sticky left-0 bg-white shadow-r border-r border-slate-200">
+            <td onclick="openRowBatchModal(${taskIdx})" class="py-2 px-3 font-semibold text-slate-700 text-xs sticky left-0 bg-white shadow-r border-r border-slate-200 cursor-pointer hover:bg-slate-100 transition" title="Clique para preencher esta etapa em TODOS OS 12 MESES de uma vez">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-1.5 pr-2">
                   <span class="text-[10px] text-slate-400 font-mono w-4">${taskIdx + 1}.</span>
                   <span>${taskName}</span>
                 </div>
+                <i class="fa-solid fa-bolt text-[10px] text-amber-500 no-print" title="Preencher 12 meses"></i>
               </div>
             </td>`;
 
@@ -2070,6 +2402,49 @@
       }
       const bSaveCell = document.getElementById("btnSaveCellModal"); if (bSaveCell) bSaveCell.addEventListener("click", saveModalCellChange);
 
+      // REPORT MODAL HANDLERS
+      const bOpenReport = document.getElementById("btnOpenReportModal"); if (bOpenReport) bOpenReport.addEventListener("click", openReportModal);
+      const bCloseReport = document.getElementById("btnCloseReportModal"); if (bCloseReport) bCloseReport.addEventListener("click", closeReportModal);
+      const bOkReport = document.getElementById("btnOKReportModal"); if (bOkReport) bOkReport.addEventListener("click", closeReportModal);
+      const bExportCsv = document.getElementById("btnExportReportCSV"); if (bExportCsv) bExportCsv.addEventListener("click", exportReportCSV);
+      const bPrintReport = document.getElementById("btnPrintReport"); if (bPrintReport) bPrintReport.addEventListener("click", () => window.print());
+
+      const rYearInp = document.getElementById("reportYearInput"); if (rYearInp) rYearInp.addEventListener("input", renderReportModal);
+      const rMonthSel = document.getElementById("reportMonthSelect"); if (rMonthSel) rMonthSel.addEventListener("change", renderReportModal);
+      const rStatusFilt = document.getElementById("reportStatusFilter"); if (rStatusFilt) rStatusFilt.addEventListener("change", renderReportModal);
+      const rColabFilt = document.getElementById("reportColabFilter"); if (rColabFilt) rColabFilt.addEventListener("change", renderReportModal);
+
+      // BATCH MODAL EVENT LISTENERS
+      const bCloseBatch = document.getElementById("btnCloseBatchModal"); if (bCloseBatch) bCloseBatch.addEventListener("click", closeBatchModal);
+      const bCancelBatch = document.getElementById("btnCancelBatchModal"); if (bCancelBatch) bCancelBatch.addEventListener("click", closeBatchModal);
+      const bApplyBatch = document.getElementById("btnApplyBatchModal"); if (bApplyBatch) bApplyBatch.addEventListener("click", applyBatchModalChanges);
+
+      const bStatusSel = document.getElementById("batchStatusSelect");
+      if (bStatusSel) {
+        bStatusSel.addEventListener("change", () => {
+          const bObsArea = document.getElementById("batchObsArea");
+          if (bObsArea) bObsArea.style.display = bStatusSel.value === 'OBSERVACAO' ? 'block' : 'none';
+        });
+      }
+
+      const bSelAllM = document.getElementById("btnBatchSelectAllMonths");
+      if (bSelAllM) bSelAllM.addEventListener("click", () => {
+        document.querySelectorAll('.batch-month-checkbox').forEach(cb => cb.checked = true);
+      });
+      const bClrM = document.getElementById("btnBatchClearMonths");
+      if (bClrM) bClrM.addEventListener("click", () => {
+        document.querySelectorAll('.batch-month-checkbox').forEach(cb => cb.checked = false);
+      });
+
+      const bSelAllT = document.getElementById("btnBatchSelectAllTasks");
+      if (bSelAllT) bSelAllT.addEventListener("click", () => {
+        document.querySelectorAll('.batch-task-checkbox').forEach(cb => cb.checked = true);
+      });
+      const bClrT = document.getElementById("btnBatchClearTasks");
+      if (bClrT) bClrT.addEventListener("click", () => {
+        document.querySelectorAll('.batch-task-checkbox').forEach(cb => cb.checked = false);
+      });
+
       // NEW / EDIT COMPANY MODAL HANDLERS
       const bNewComp = document.getElementById("btnNewCompany");
       if (bNewComp) {
@@ -2351,6 +2726,9 @@
     // EXPORT TO GLOBAL WINDOW FOR INLINE HTML LISTENERS
     window.selectCompany = selectCompany;
     window.openCellModal = openCellModal;
+      window.openColumnBatchModal = openColumnBatchModal;
+      window.openRowBatchModal = openRowBatchModal;
+      window.openBatchModal = openBatchModal;
     window.resetCompanyFilters = resetCompanyFilters;
     window.restoreInitialCompanies = restoreInitialCompanies;
     window.selectFromDropdown = selectFromDropdown;
@@ -2470,6 +2848,229 @@
     </div>
   </div>
   <input type="file" id="importFileInput" class="hidden" accept=".json">
+
+
+  <!-- COMPLETION REPORT MODAL -->
+  <div id="reportModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-md items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh]">
+      
+      <!-- HEADER -->
+      <div class="bg-brand-700 text-white p-4 flex items-center justify-between">
+        <h3 class="font-bold text-base flex items-center gap-2">
+          <i class="fa-solid fa-file-invoice text-emerald-300 text-lg"></i>
+          <span>Relatório Geral de Fechamento Contábil RBM</span>
+        </h3>
+        <button id="btnCloseReportModal" class="text-slate-300 hover:text-white text-2xl font-bold">&times;</button>
+      </div>
+
+      <!-- FILTER CONTROLS BAR -->
+      <div class="p-3.5 bg-slate-50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Exercício (Ano):</label>
+          <input type="number" id="reportYearInput" value="2026" min="2020" max="2035"
+            class="w-full p-2 border border-slate-300 rounded-md font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Mês de Referência:</label>
+          <select id="reportMonthSelect" class="w-full p-2 border border-slate-300 rounded-md font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+            <option value="ALL">📅 Acumulado Ano Completo (Jan a Dez)</option>
+            <option value="Q1">1º Trimestre (Jan - Mar)</option>
+            <option value="Q2">2º Trimestre (Abr - Jun)</option>
+            <option value="Q3">3º Trimestre (Jul - Set)</option>
+            <option value="Q4">4º Trimestre (Out - Dez)</option>
+            <option value="S1">1º Semestre (Jan - Jun)</option>
+            <option value="S2">2º Semestre (Jul - Dez)</option>
+            <option value="0">Janeiro</option>
+            <option value="1">Fevereiro</option>
+            <option value="2">Março</option>
+            <option value="3">Abril</option>
+            <option value="4">Maio</option>
+            <option value="5">Junho</option>
+            <option value="6">Julho</option>
+            <option value="7">Agosto</option>
+            <option value="8">Setembro</option>
+            <option value="9">Outubro</option>
+            <option value="10">Novembro</option>
+            <option value="11">Dezembro</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Filtrar por Situação:</label>
+          <select id="reportStatusFilter" class="w-full p-2 border border-slate-300 rounded-md font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+            <option value="TODAS">Todas as Empresas</option>
+            <option value="CONCLUIDAS">🟢 Apenas Concluídas (100%)</option>
+            <option value="PENDENTES">🔴 Apenas com Pendências</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Filtrar por Responsável:</label>
+          <select id="reportColabFilter" class="w-full p-2 border border-slate-300 rounded-md font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+            <option value="">Todos os Colaboradores</option>
+            <option value="Viviane">Viviane</option>
+            <option value="Lilian">Lilian</option>
+            <option value="Luziete">Luziete</option>
+            <option value="Aurea">Aurea</option>
+            <option value="Marcio">Marcio</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- KPI METRICS SUMMARY HEADER -->
+      <div class="p-3 bg-white border-b border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-emerald-50 border border-emerald-200 p-2 rounded-xl">
+          <span class="text-[10px] uppercase font-extrabold text-emerald-800">100% Concluídas</span>
+          <p id="kpiReportDone" class="text-xl font-black text-emerald-700">0</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 p-2 rounded-xl">
+          <span class="text-[10px] uppercase font-extrabold text-amber-800">Em Andamento</span>
+          <p id="kpiReportAndamento" class="text-xl font-black text-amber-700">0</p>
+        </div>
+        <div class="bg-rose-50 border border-rose-200 p-2 rounded-xl">
+          <span class="text-[10px] uppercase font-extrabold text-rose-800">Pendentes</span>
+          <p id="kpiReportPending" class="text-xl font-black text-rose-700">0</p>
+        </div>
+        <div class="bg-slate-100 border border-slate-200 p-2 rounded-xl">
+          <span class="text-[10px] uppercase font-extrabold text-slate-700">Total Auditado</span>
+          <p id="kpiReportTotal" class="text-xl font-black text-slate-800">0</p>
+        </div>
+      </div>
+
+      <!-- TABLE CONTAINER -->
+      <div class="p-4 flex-1 overflow-y-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700 border-b border-slate-300 font-extrabold uppercase text-[10px]">
+              <th class="py-2.5 px-3">Cód</th>
+              <th class="py-2.5 px-3">Empresa</th>
+              <th class="py-2.5 px-3">Enquadramento</th>
+              <th class="py-2.5 px-3">Responsável</th>
+              <th class="py-2.5 px-3 text-center">Progresso</th>
+              <th class="py-2.5 px-3 text-center">Situação Contábil</th>
+            </tr>
+          </thead>
+          <tbody id="reportTableBody" class="divide-y divide-slate-200 font-medium">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- FOOTER ACTION BUTTONS -->
+      <div class="p-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <span class="text-xs text-slate-500 italic hidden sm:inline">Relatório em tempo real sincronizado com a nuvem RBM.</span>
+        <div class="flex items-center gap-2">
+          <button id="btnExportReportCSV" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition flex items-center gap-1.5 shadow">
+            <i class="fa-solid fa-file-csv text-sm"></i>
+            <span>Exportar Excel (CSV)</span>
+          </button>
+          <button id="btnPrintReport" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs transition flex items-center gap-1.5 shadow">
+            <i class="fa-solid fa-print text-sm"></i>
+            <span>Imprimir / PDF</span>
+          </button>
+          <button id="btnOKReportModal" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-xs transition">
+            Fechar
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- BATCH EDIT MODAL (ATUALIZAÇÃO EM LOTE / VÁRIOS AO MESMO TEMPO) -->
+  <div id="batchEditModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-md items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      
+      <!-- HEADER -->
+      <div class="bg-brand-700 text-white p-4 flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <i class="fa-solid fa-bolt text-amber-300 text-lg"></i>
+          <span>Preencher Vários ao Mesmo Tempo (Atualização em Lote)</span>
+        </h3>
+        <button id="btnCloseBatchModal" class="text-slate-300 hover:text-white text-xl font-bold">&times;</button>
+      </div>
+
+      <div class="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+        
+        <!-- TARGET SITUATION / STATUS SELECTION -->
+        <div>
+          <label class="block font-extrabold text-slate-800 text-xs mb-1.5 flex items-center gap-1.5">
+            <i class="fa-solid fa-tag text-blue-600"></i>
+            <span>1. Escolha a Situação a ser Aplicada: *</span>
+          </label>
+          <select id="batchStatusSelect" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="REALIZADO">✅ CONCLUÍDO / REALIZADO (Verde)</option>
+            <option value="PENDENTE">🔴 PENDENTE (Vermelho)</option>
+            <option value="ANDAMENTO">⏳ EM ANDAMENTO (Amarelo)</option>
+            <option value="OBSERVACAO">💬 OBSERVAÇÃO (Escrever nota / Soma como Concluído)</option>
+            <option value="CINZA">➖ INATIVA / SAIU DA RBM (Cinza)</option>
+            <option value="DASH">— TRACINHO (Sem nada / Sem ação)</option>
+          </select>
+        </div>
+
+        <!-- OBSERVATION INPUT FOR BATCH (shown when OBSERVACAO selected) -->
+        <div id="batchObsArea" class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1.5" style="display: none;">
+          <label class="block font-bold text-emerald-900 text-xs">Digite a Observação para todos os itens selecionados: *</label>
+          <textarea id="batchObsInput" rows="2" placeholder="Ex: Sem movimento no período, empresa dispensada, etc."
+            class="w-full p-2 bg-white border border-emerald-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+          <p id="batchObsErrorMsg" class="hidden text-[11px] text-rose-600 font-extrabold flex items-center gap-1">
+            <i class="fa-solid fa-triangle-exclamation"></i> Digite alguma observação antes de aplicar!
+          </p>
+        </div>
+
+        <!-- MONTH SELECTION CHECKBOXES -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="font-extrabold text-slate-800 text-xs flex items-center gap-1.5">
+              <i class="fa-solid fa-calendar-days text-blue-600"></i>
+              <span>2. Selecione os Meses: *</span>
+            </label>
+            <div class="flex items-center gap-2">
+              <button id="btnBatchSelectAllMonths" type="button" class="text-[11px] font-bold text-blue-600 hover:underline">Todos os Meses</button>
+              <span class="text-slate-300">|</span>
+              <button id="btnBatchClearMonths" type="button" class="text-[11px] font-bold text-slate-500 hover:underline">Limpar Meses</button>
+            </div>
+          </div>
+
+          <div id="batchMonthsContainer" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+            <!-- JS populated -->
+          </div>
+        </div>
+
+        <!-- TASK SELECTION CHECKBOXES -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="font-extrabold text-slate-800 text-xs flex items-center gap-1.5">
+              <i class="fa-solid fa-list-check text-blue-600"></i>
+              <span>3. Selecione as Etapas / Tarefas: *</span>
+            </label>
+            <div class="flex items-center gap-2">
+              <button id="btnBatchSelectAllTasks" type="button" class="text-[11px] font-bold text-blue-600 hover:underline">Todas as 21 Etapas</button>
+              <span class="text-slate-300">|</span>
+              <button id="btnBatchClearTasks" type="button" class="text-[11px] font-bold text-slate-500 hover:underline">Limpar Etapas</button>
+            </div>
+          </div>
+
+          <div id="batchTasksContainer" class="max-h-44 overflow-y-auto space-y-1.5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+            <!-- JS populated -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- FOOTER -->
+      <div class="p-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <span class="text-[11px] text-slate-500 font-medium">Empresa: <strong id="batchCompanyName" class="text-slate-800">--</strong></span>
+        <div class="flex items-center gap-2">
+          <button id="btnCancelBatchModal" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg">Cancelar</button>
+          <button id="btnApplyBatchModal" class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt text-amber-300"></i>
+            <span>Aplicar Alterações em Lote</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
 </body>
 </html>

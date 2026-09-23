@@ -542,6 +542,29 @@
             </span>
             <i class="fa-solid fa-chevron-right text-xs"></i>
           </button>
+
+          <!-- OPTION 6: OBSERVAÇÃO (CONTA COMO CONCLUÍDO VERDE) -->
+          <button id="btnSetObservacao" type="button" class="w-full text-left px-3 py-2 rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs flex items-center justify-between transition shadow-xs">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-comment-dots text-emerald-600 text-sm"></i>
+              <span>OBSERVAÇÃO (Escrever nota / Soma como Concluído)</span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+        </div>
+
+        <!-- OBSERVATION INPUT AREA -->
+        <div id="cellObsFieldArea" class="mt-3 p-2.5 bg-emerald-50/90 rounded-lg border border-emerald-300 space-y-1.5" style="display: none;">
+          <label class="block text-xs font-extrabold text-emerald-900 flex items-center gap-1.5">
+            <i class="fa-solid fa-pen-to-square text-emerald-700"></i>
+            <span>Digite a Observação para este mês: *</span>
+          </label>
+          <textarea id="modalCellObsInput" rows="2" placeholder="Escreva qualquer observação aqui (ex: Sem movimento, dispensada, etc.)"
+            class="w-full p-2 border border-emerald-400 rounded-md text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white text-slate-900 shadow-xs"></textarea>
+          <p id="cellObsErrorMsg" class="hidden text-[11px] text-rose-600 font-extrabold flex items-center gap-1 mt-1">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>Por favor, escreva a observação antes de salvar!</span>
+          </p>
         </div>
       </div>
 
@@ -987,13 +1010,6 @@
     let modalSelectedStatus = 'DASH';
     let pendingAuthAction = null;
     let historyLog = [];
-    let activeUser = localStorage.getItem("rbm_closing_active_user"); if (!activeUser || activeUser === "Qualquer pessoa" || !USER_PASSWORDS[activeUser]) activeUser = "Viviancontabil";
-    let cloudDb = null;
-    let isRemoteUpdate = false;
-    const FIREBASE_NODE_PATH = "rotina_fechamento_contabil_live";
-
-    // AUTHENTICATION AND LOCK LOGIC
-    
     const USER_PASSWORDS = {
       "Líliancontabil": ["liliancontabil", "lilian123", "lilian", "1234", "rbmcontabil", "rbm", "admin"],
       "Luzietecontabil": ["luzietecontabil", "luziete123", "luziete", "1234", "rbmcontabil", "rbm", "admin"],
@@ -1001,6 +1017,11 @@
       "Aureacontabil": ["aureacontabil", "aurea123", "aurea", "1234", "rbmcontabil", "rbm", "admin"],
       "Viviancontabil": ["viviancontabil", "vivian123", "vivian", "1234", "rbmcontabil", "rbm", "admin"]
     };
+
+    let activeUser = localStorage.getItem("rbm_closing_active_user"); if (!activeUser || activeUser === "Qualquer pessoa" || !USER_PASSWORDS[activeUser]) activeUser = "Viviancontabil";
+    let cloudDb = null;
+    let isRemoteUpdate = false;
+    const FIREBASE_NODE_PATH = "rotina_fechamento_contabil_live";
 
     function validateUserPassword(user, password) {
       const uKey = (user && USER_PASSWORDS[user]) ? user : (activeUser && USER_PASSWORDS[activeUser] ? activeUser : "Viviancontabil");
@@ -1655,28 +1676,35 @@
           let cellStyleClass = "";
           let labelText = "";
 
-          if (cellData.status === 'REALIZADO' || cellData.status === 'CONCLUIDO') {
+          if (cellData.status === 'OBSERVACAO' || cellData.status === 'OBS') {
             cellStyleClass = "status-realizado";
-            labelText = "Concluído";
+            const obsText = cellData.obs || "Observação";
+            labelText = `<div class="flex items-center justify-center gap-1 text-emerald-950 font-extrabold px-0.5 truncate" title="Observação: ${obsText}">
+              <i class="fa-solid fa-comment-dots text-emerald-700 text-[10px] shrink-0"></i>
+              <span class="truncate max-w-[75px] text-[10px] leading-tight">${obsText}</span>
+            </div>`;
+          } else if (cellData.status === 'REALIZADO' || cellData.status === 'CONCLUIDO') {
+            cellStyleClass = "status-realizado";
+            labelText = "<span>Concluído</span>";
           } else if (cellData.status === 'ANDAMENTO' || cellData.status === 'EM_ANDAMENTO') {
             cellStyleClass = "status-andamento";
-            labelText = "em andamento";
+            labelText = "<span>em andamento</span>";
           } else if (cellData.status === 'PENDENTE') {
             cellStyleClass = "status-pendente";
-            labelText = "pendente";
+            labelText = "<span>pendente</span>";
           } else if (cellData.status === 'CINZA') {
             cellStyleClass = "status-cinza";
-            labelText = "Inativa / Saída";
+            labelText = "<span>Inativa / Saída</span>";
           } else {
             cellStyleClass = "status-dash";
-            labelText = "—";
+            labelText = "<span>—</span>";
           }
 
           html += `
             <td onclick="openCellModal(${taskIdx}, ${monthIdx})" 
               class="py-2 px-1 text-center font-bold text-[11px] grid-cell ${cellStyleClass} border-r border-slate-200 cursor-pointer">
-              <div class="flex items-center justify-center">
-                <span>${labelText}</span>
+              <div class="flex items-center justify-center overflow-hidden">
+                ${labelText}
               </div>
             </td>`;
         }
@@ -1702,6 +1730,20 @@
         const cellData = (yearData.tasks[taskIdx] && yearData.tasks[taskIdx][monthIdx]) || { status: 'DASH', date: '' };
 
         modalSelectedStatus = cellData.status || 'DASH';
+        
+        const obsArea = document.getElementById("cellObsFieldArea");
+        const obsInput = document.getElementById("modalCellObsInput");
+        const obsErr = document.getElementById("cellObsErrorMsg");
+        if (obsErr) obsErr.classList.add("hidden");
+
+        if (obsInput) obsInput.value = cellData.obs || "";
+
+        if (modalSelectedStatus === 'OBSERVACAO' || modalSelectedStatus === 'OBS') {
+          if (obsArea) obsArea.style.display = "block";
+        } else {
+          if (obsArea) obsArea.style.display = "none";
+        }
+
         const cellMod = document.getElementById("cellModal");
         if (cellMod) cellMod.style.display = "flex";
       });
@@ -1710,6 +1752,8 @@
     function closeCellModal() {
       const cellMod = document.getElementById("cellModal");
       if (cellMod) cellMod.style.display = "none";
+      const obsErr = document.getElementById("cellObsErrorMsg");
+      if (obsErr) obsErr.classList.add("hidden");
       activeCellModalData = null;
     }
 
@@ -1719,16 +1763,36 @@
       const yearData = getCompanyYearData(currentSelectedCode, currentYear);
       if (!yearData.tasks) yearData.tasks = {};
       if (!yearData.tasks[taskIdx]) yearData.tasks[taskIdx] = {};
+
+      const obsInput = document.getElementById("modalCellObsInput");
+      const obsErr = document.getElementById("cellObsErrorMsg");
+      let obsTxt = obsInput ? obsInput.value.trim() : "";
+
+      if (modalSelectedStatus === 'OBSERVACAO') {
+        if (!obsTxt || obsTxt === "") {
+          if (obsErr) obsErr.classList.remove("hidden");
+          if (obsInput) {
+            obsInput.focus();
+            obsInput.classList.add("border-rose-500", "ring-2", "ring-rose-200");
+          }
+          return;
+        }
+      }
+
+      if (obsErr) obsErr.classList.add("hidden");
+      if (obsInput) obsInput.classList.remove("border-rose-500", "ring-2", "ring-rose-200");
       
       yearData.tasks[taskIdx][monthIdx] = {
         status: modalSelectedStatus,
-        date: ''
+        obs: modalSelectedStatus === 'OBSERVACAO' ? obsTxt : '',
+        date: getCurrentShortDate()
       };
 
       const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
       const taskName = closingTasks[taskIdx] || `Etapa ${taskIdx + 1}`;
       const monthName = MONTH_NAMES[monthIdx] || `Mês ${monthIdx + 1}`;
       const statusLabels = {
+        'OBSERVACAO': 'Observação (Concluído)',
         'REALIZADO': 'Concluído',
         'CONCLUIDO': 'Concluído',
         'ANDAMENTO': 'Em andamento',
@@ -1755,7 +1819,7 @@
 
     function updateSelectedCompanyStats() {
       const statSel = document.getElementById("statMonthSelect");
-      const selectedMonth = statSel ? parseInt(statSel.value, 10) : 0;
+      const selectedMonth = (statSel && statSel.value !== "" && !isNaN(parseInt(statSel.value, 10))) ? parseInt(statSel.value, 10) : 0;
       
       if (!currentSelectedCode) {
         const d = document.getElementById("statDoneCount"); if (d) d.innerText = "0/21";
@@ -1774,7 +1838,7 @@
 
       closingTasks.forEach((_, taskIdx) => {
         const cell = (yearData.tasks[taskIdx] && yearData.tasks[taskIdx][selectedMonth]) || { status: 'DASH' };
-        if (cell.status === 'REALIZADO' || cell.status === 'CONCLUIDO') doneCount++;
+        if (cell.status === 'REALIZADO' || cell.status === 'CONCLUIDO' || cell.status === 'OBSERVACAO' || cell.status === 'OBS') doneCount++;
         else if (cell.status === 'ANDAMENTO' || cell.status === 'EM_ANDAMENTO') andamentoCount++;
         else if (cell.status === 'PENDENTE') pendingCount++;
       });
@@ -1989,6 +2053,21 @@
       const bAnd = document.getElementById("btnSetAndamento"); if (bAnd) bAnd.addEventListener("click", () => { modalSelectedStatus = 'ANDAMENTO'; saveModalCellChange(); });
       const bReal = document.getElementById("btnSetRealizado"); if (bReal) bReal.addEventListener("click", () => { modalSelectedStatus = 'REALIZADO'; saveModalCellChange(); });
       const bCinza = document.getElementById("btnSetCinza"); if (bCinza) bCinza.addEventListener("click", () => { modalSelectedStatus = 'CINZA'; saveModalCellChange(); });
+      const bObs = document.getElementById("btnSetObservacao");
+      if (bObs) {
+        bObs.addEventListener("click", () => {
+          modalSelectedStatus = 'OBSERVACAO';
+          const obsArea = document.getElementById("cellObsFieldArea");
+          const obsInput = document.getElementById("modalCellObsInput");
+          if (obsArea) obsArea.style.display = "block";
+          if (obsInput) {
+            obsInput.focus();
+            if (obsInput.value.trim() !== "") {
+              saveModalCellChange();
+            }
+          }
+        });
+      }
       const bSaveCell = document.getElementById("btnSaveCellModal"); if (bSaveCell) bSaveCell.addEventListener("click", saveModalCellChange);
 
       // NEW / EDIT COMPANY MODAL HANDLERS

@@ -12,6 +12,733 @@
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f4f9',
+              100: '#d9e2ec',
+              500: '#1e3e62',
+              600: '#0f2c59',
+              700: '#0a1e3f',
+              800: '#061329',
+              accent: '#2563eb'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Estilos personalizados para tabela de rotina contábil */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    .grid-cell {
+      transition: all 0.15s ease-in-out;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grid-cell:hover {
+      filter: brightness(0.95);
+      transform: scale(1.03);
+    }
+    .status-dash {
+      background-color: #f8fafc;
+      color: #94a3b8;
+      border: 1px solid #e2e8f0;
+      font-weight: 500;
+    }
+    .status-pendente {
+      background-color: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+      font-weight: 700;
+    }
+    .status-andamento {
+      background-color: #fefce8;
+      color: #b45309;
+      border: 1px solid #fef08a;
+      font-weight: 700;
+    }
+    .status-realizado {
+      background-color: #f0fdf4;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+      font-weight: 700;
+    }
+    .status-cinza {
+      background-color: #e2e8f0;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+      font-weight: 700;
+    }
+    
+    /* Print Styles */
+    @media print {
+      .no-print { display: none !important; }
+      .print-full { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+      body { background: white !important; color: black !important; }
+    }
+  </style>
+  <!-- Firebase Realtime Cloud Sync -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- TOP HEADER BAR -->
+  <header class="bg-brand-600 text-white shadow-md no-print border-b border-brand-700 sticky top-0 z-30">
+    <div class="max-w-[1700px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- LOGO / BRANDING -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow">
+          <i class="fa-solid fa-calculator"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight leading-tight flex items-center gap-2">
+            Rotina de Fechamento Contábil
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/30 text-blue-200 border border-blue-400/30">RBM Contábil</span>
+          </h1>
+          <p class="text-xs text-slate-300">Gestão de Fechamento Contábil do Dia a Dia do Escritório</p>
+        </div>
+      </div>
+
+      <!-- SEARCH BAR DIRECT LOOKUP BY CODE OR NAME -->
+      <div class="flex-1 max-w-md relative">
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </span>
+          <input type="text" id="topSearchInput" autocomplete="off" placeholder="Digite o CÓDIGO ou Nome da empresa..." 
+            class="w-full pl-9 pr-24 py-2 bg-brand-700/80 text-white placeholder-slate-300 text-sm rounded-lg border border-brand-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-brand-800 transition">
+          <button id="btnQuickLookup" class="absolute right-1 top-1 bottom-1 px-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-md transition flex items-center gap-1">
+            <span>Ir</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+        <!-- Quick search suggestions dropdown -->
+        <div id="searchDropdown" class="hidden absolute top-full left-0 right-0 mt-1 bg-white text-slate-800 rounded-lg shadow-xl border border-slate-200 max-h-60 overflow-y-auto z-50"></div>
+      </div>
+
+      <!-- ACTION BUTTONS & USER SELECTOR -->
+      <div class="flex items-center space-x-2">
+        
+        <!-- OPERATOR / ACTIVE USER SELECTOR -->
+        <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-300 shadow-sm text-slate-800">
+          <i class="fa-solid fa-user-lock text-blue-600 text-base"></i>
+          <span class="text-xs font-extrabold text-slate-800">Usuário:</span>
+          <select id="activeUserSelect" class="bg-white text-slate-900 font-extrabold text-xs rounded border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-xs" style="color: #0f172a !important; background-color: #ffffff !important;">
+            <option value="Líliancontabil" class="text-slate-900 bg-white font-bold" style="color: #0f172a !important; background-color: #ffffff !important;">👤 Líliancontabil</option>
+            <option value="Luzietecontabil" class="text-slate-900 bg-white font-bold" style="color: #0f172a !important; background-color: #ffffff !important;">👤 Luzietecontabil</option>
+            <option value="Vivianecontabil" class="text-slate-900 bg-white font-bold" style="color: #0f172a !important; background-color: #ffffff !important;">👤 Vivianecontabil</option>
+            <option value="Aureacontabil" class="text-slate-900 bg-white font-bold" style="color: #0f172a !important; background-color: #ffffff !important;">👤 Aureacontabil</option>
+            <option value="Viviancontabil" class="text-slate-900 bg-white font-bold" style="color: #0f172a !important; background-color: #ffffff !important;">👤 Viviancontabil</option>
+          </select>
+        </div>
+
+        <!-- STATUS SUMMARY FOR THE SELECTED COMPANY ONLY -->
+        <div class="flex items-center space-x-4 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-800">
+          <div class="flex items-center space-x-1 font-semibold text-slate-700">
+            <i class="fa-solid fa-chart-pie text-brand-600 mr-1"></i>
+            <span>Progresso da Empresa Selecionada:</span>
+          </div>
+
+          <div class="flex items-center space-x-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <span class="text-slate-600">Concluídas:</span>
+            <span id="statDoneCount" class="font-bold text-emerald-700">0/21</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            <span class="text-slate-600">Andamento:</span>
+            <span id="statAndamentoCount" class="font-bold text-amber-600">0/21</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+            <span class="text-slate-600">Pendentes:</span>
+            <span id="statPendingCount" class="font-bold text-red-600">0/21</span>
+          </div>
+
+          <div class="flex items-center space-x-2 pl-2 border-l border-slate-300">
+            <div class="w-24 bg-slate-200 rounded-full h-2.5 overflow-hidden">
+              <div id="statProgressBar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <span id="statProgressText" class="font-bold text-slate-800">0%</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-5">
+    
+    <!-- LEFT SIDEBAR: COMPANY LIST & FILTERS -->
+    <aside class="lg:col-span-4 xl:col-span-3 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-[calc(100vh-160px)] sticky top-24 no-print">
+      
+      <!-- SIDEBAR FILTERS HEADER -->
+      <div class="p-3.5 bg-slate-50 border-b border-slate-200 space-y-2.5">
+        
+        <div class="flex items-center justify-between">
+          <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-building text-brand-600"></i>
+            Base de Empresas
+          </h2>
+          <div class="flex items-center gap-1.5">
+            <span id="cloudStatusBadge" class="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-200" title="Sincronizado">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Nuvem</span>
+            </span>
+            <span id="companyCountBadge" class="text-xs bg-slate-200 text-slate-700 font-semibold px-2 py-0.5 rounded-full">0</span>
+          </div>
+        </div>
+
+        <!-- SEARCH FILTER -->
+        <div class="relative">
+          <input type="text" id="sideSearchInput" autocomplete="off" placeholder="Buscar por código ou nome..." 
+            class="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 text-xs rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500">
+          <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+        </div>
+
+        <!-- DROPDOWN FILTERS (COLABORADOR, TIPO, ENQUADRAMENTO TRIBUTÁRIO & SITUAÇÃO) -->
+        <div class="grid grid-cols-2 gap-1.5">
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Colaborador</label>
+            <select id="filterColaborador" class="w-full text-xs border border-slate-300 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <option value="">Todos</option>
+              <option value="Viviane">Viviane</option>
+              <option value="Lilian">Lilian</option>
+              <option value="Luziete">Luziete</option>
+              <option value="Aurea">Aurea</option>
+              <option value="Marcio">Marcio</option>
+              <option value="Sem Colaborador">[Sem Resp.]</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Enquad.</label>
+            <select id="filterEnquadramento" class="w-full text-xs border border-slate-300 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <option value="">Todos</option>
+              <option value="Simples Nacional Puro">SN Puro</option>
+              <option value="Simples Nacional Híbrido">SN Híbrido</option>
+              <option value="Lucro Presumido">Lucro Presumido</option>
+              <option value="Lucro Real">Lucro Real</option>
+              <option value="MEI">MEI</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Situação</label>
+            <select id="filterStatusSaida" class="w-full text-xs border border-slate-300 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold">
+              <option value="">Todas</option>
+              <option value="Ativas">Ativas</option>
+              <option value="Saidas">Saíram da RBM (Cinza)</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- COMPANY SCROLLABLE LIST -->
+      <div id="companyList" class="flex-1 overflow-y-auto divide-y divide-slate-100">
+        <!-- Javascript populated items -->
+      </div>
+
+    </aside>
+
+    <!-- RIGHT MAIN PANEL: COMPANY CLOSING ROUTINE DETAIL -->
+    <section class="lg:col-span-8 xl:col-span-9 flex flex-col gap-4 print-full">
+      
+      <!-- COMPANY HEADER & CONTROLS -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+        
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-3">
+          
+          <div class="flex items-center space-x-3">
+            <span id="displayCompanyCode" class="px-3 py-1 bg-brand-600 text-white font-extrabold text-sm rounded-lg shadow-sm">
+              CÓD: --
+            </span>
+            <div>
+              <h2 id="displayCompanyName" class="text-xl font-bold text-slate-800 leading-tight">
+                Selecione uma Empresa
+              </h2>
+              <div class="flex items-center gap-2 mt-0.5 text-xs text-slate-500 flex-wrap">
+                <span id="displayTaxBadge" class="font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200">
+                  ENQUAD: --
+                </span>
+                
+                <span>Responsável: <strong id="displayColaboradorText" class="text-slate-800 font-bold">--</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- EDIT / DELETE / YEAR CONTROLS -->
+          <div class="flex items-center space-x-3 no-print">
+            <div class="flex items-center space-x-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+              <label class="text-xs font-semibold text-slate-600">Exercício:</label>
+              <input type="number" id="inputYear" value="2026" min="2020" max="2035" 
+                class="w-16 text-xs font-bold text-center bg-white border border-slate-300 rounded py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+
+            <button id="btnEditSelectedCompany" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 transition flex items-center gap-1.5">
+              <i class="fa-solid fa-pen-to-square text-blue-600"></i>
+              <span>Editar Empresa</span>
+            </button>
+            <button id="btnDeleteSelectedCompany" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold rounded-lg border border-rose-200 transition flex items-center gap-1.5">
+              <i class="fa-solid fa-trash-can"></i>
+              <span class="hidden sm:inline">Excluir</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- EDITABLE METADATA ROW -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 text-xs">
+          
+          <div class="bg-blue-50/60 p-2 rounded-lg border border-blue-100">
+            <label class="block font-bold text-blue-900 mb-1 flex items-center justify-between">
+              <span>Colaborador</span>
+              <i class="fa-solid fa-user-gear text-blue-600"></i>
+            </label>
+            <select id="inputCompanyColaborador" class="w-full border border-blue-300 rounded-md p-1.5 bg-white text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">[Em branco]</option>
+              <option value="Viviane">Viviane</option>
+              <option value="Lilian">Lilian</option>
+              <option value="Luziete">Luziete</option>
+              <option value="Aurea">Aurea</option>
+              <option value="Marcio">Marcio</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-500 mb-1">Tipo de Empresa</label>
+            <select id="inputCompanyTipo" class="w-full border border-slate-300 rounded-md p-1.5 bg-white text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <option value="Não informado">Não informado</option>
+              <option value="Serviço">Serviço</option>
+              <option value="Comércio">Comércio</option>
+              <option value="Indústria">Indústria</option>
+              <option value="Holding / Adm">Holding / Adm</option>
+              <option value="Saúde / Médica">Saúde / Médica</option>
+              <option value="Transporte">Transporte</option>
+              <option value="Sem movimento">Sem movimento / Inativa</option>
+              <option value="Outros">Outros</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-500 mb-1">DT ENTRADA RBM</label>
+            <input type="text" id="inputDtEntradaRbm" placeholder="Ex: 15/01/2026" 
+              class="w-full border border-slate-300 rounded-md p-1.5 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-500 mb-1">Enquadramento</label>
+            <select id="inputCompanyTax" class="w-full border border-slate-300 rounded-md p-1.5 bg-white text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <option value="Simples Nacional Puro">Simples Nacional Puro</option>
+              <option value="Simples Nacional Híbrido">Simples Nacional Híbrido</option>
+              <option value="Lucro Presumido">Lucro Presumido</option>
+              <option value="Lucro Real">Lucro Real</option>
+              <option value="MEI">MEI - Microempreendedor</option>
+            </select>
+          </div>
+
+          <div class="bg-slate-100 p-2 rounded-lg border border-slate-200">
+            <label class="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+              <span>Mês de Saída RBM</span>
+              <i class="fa-solid fa-door-open text-slate-500"></i>
+            </label>
+            <select id="inputCompanyMesSaida" class="w-full border border-slate-300 rounded-md p-1.5 bg-white text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-slate-500">
+              <option value="-1">Empresa Ativa (Sem Saída)</option>
+              <option value="0">Saída a partir de Janeiro</option>
+              <option value="1">Saída a partir de Fevereiro</option>
+              <option value="2">Saída a partir de Março</option>
+              <option value="3">Saída a partir de Abril</option>
+              <option value="4">Saída a partir de Maio</option>
+              <option value="5">Saída a partir de Junho</option>
+              <option value="6">Saída a partir de Julho</option>
+              <option value="7">Saída a partir de Agosto</option>
+              <option value="8">Saída a partir de Setembro</option>
+              <option value="9">Saída a partir de Outubro</option>
+              <option value="10">Saída a partir de Novembro</option>
+              <option value="11">Saída a partir de Dezembro</option>
+            </select>
+          </div>
+
+        </div>
+
+        <!-- OBSERVATIONS FIELD -->
+        <div class="mt-3 pt-3 border-t border-slate-100">
+          <label class="block text-xs font-semibold text-slate-600 mb-1 flex items-center justify-between">
+            <span><i class="fa-solid fa-comment-dots text-amber-500 mr-1"></i> Campo de Observações da Empresa:</span>
+            <span class="text-[10px] text-slate-400 font-normal">Editável • Salvo automaticamente</span>
+          </label>
+          <textarea id="inputObservations" rows="2" placeholder="Digite observações importantes, particularidades fiscais, histórico ou pendências da empresa..."
+            class="w-full p-2 text-xs border border-slate-300 rounded-lg bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-y"></textarea>
+        </div>
+
+        <!-- LAST ACTION BANNER FOR CURRENT COMPANY -->
+        <div class="mt-2.5 pt-2.5 border-t border-slate-100 text-xs text-slate-600 flex flex-wrap items-center justify-between gap-2 bg-slate-50/80 p-2 rounded-lg border border-slate-200/80">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <i class="fa-solid fa-history text-indigo-500 shrink-0"></i>
+            <span class="font-bold text-slate-700 shrink-0">Última alteração:</span>
+            <span id="displayLastActionText" class="truncate text-slate-600">Sem alterações registradas recentemente nesta empresa.</span>
+          </div>
+          <button id="btnViewCompanyHistory" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1 shrink-0">
+            <span>Ver Histórico Completo</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- CLOSING ROUTINE MATRIX TABLE -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+        
+        <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center space-x-2">
+            <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wide flex items-center gap-1.5">
+              <i class="fa-solid fa-list-check text-emerald-600"></i>
+              Checklist de Fechamento Contábil
+            </h3>
+          </div>
+          
+          <!-- LEGEND & HELPER -->
+          <div class="flex items-center space-x-3 text-[11px] no-print">
+            <span class="flex items-center gap-1">
+              <span class="w-3 h-3 rounded bg-slate-100 border border-slate-300 text-[10px] text-center font-bold">—</span>
+              <span class="text-slate-500">Tracinho (Sem ação)</span>
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="w-3 h-3 rounded bg-red-100 border border-red-300"></span>
+              <span class="text-red-700 font-bold">Pendente (Vermelho)</span>
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="w-3 h-3 rounded bg-amber-100 border border-amber-300"></span>
+              <span class="text-amber-800 font-bold">Em Andamento (Amarelo)</span>
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="w-3 h-3 rounded bg-emerald-100 border border-emerald-300"></span>
+              <span class="text-emerald-700 font-bold">Concluído (Verde)</span>
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="w-3 h-3 rounded bg-slate-200 border border-slate-300"></span>
+              <span class="text-slate-700 font-bold">⚪ Inativa / Saída (Cinza)</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- TABLE GRID -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse min-w-[1000px]">
+            <thead>
+              <tr class="bg-brand-600 text-white text-[11px] uppercase tracking-wider font-semibold border-b border-brand-700">
+                <th class="py-2.5 px-3 min-w-[280px] w-[350px] sticky left-0 bg-brand-600 z-10 shadow-r">Descrição das Tarefas / Etapas</th>
+                <th class="py-2.5 px-1 text-center w-20">Jan</th>
+                <th class="py-2.5 px-1 text-center w-20">Fev</th>
+                <th class="py-2.5 px-1 text-center w-20">Mar</th>
+                <th class="py-2.5 px-1 text-center w-20">Abr</th>
+                <th class="py-2.5 px-1 text-center w-20">Mai</th>
+                <th class="py-2.5 px-1 text-center w-20">Jun</th>
+                <th class="py-2.5 px-1 text-center w-20">Jul</th>
+                <th class="py-2.5 px-1 text-center w-20">Ago</th>
+                <th class="py-2.5 px-1 text-center w-20">Set</th>
+                <th class="py-2.5 px-1 text-center w-20">Out</th>
+                <th class="py-2.5 px-1 text-center w-20">Nov</th>
+                <th class="py-2.5 px-1 text-center w-20">Dez</th>
+              </tr>
+            </thead>
+            <tbody id="routineTableBody" class="divide-y divide-slate-200 text-xs">
+              <!-- Dynamically built by JS -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- CELL EDIT POPUP MODAL -->
+  <div id="cellModal" style="display: none;" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-150">
+      
+      <div class="bg-brand-600 text-white p-3.5 flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <i class="fa-solid fa-pen"></i>
+          Atualizar Status da Etapa
+        </h3>
+        <button id="btnCloseCellModal" class="text-slate-300 hover:text-white text-lg">&times;</button>
+      </div>
+
+      <div class="p-4 space-y-3">
+        <div>
+          <p id="modalTaskName" class="font-bold text-slate-800 text-xs mb-1"></p>
+          <p id="modalMonthName" class="text-xs text-slate-500 font-medium"></p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-xs font-semibold text-slate-700">Escolha a Situação:</label>
+          
+          <!-- OPTION 1: TRACINHO (DASH / BLANK) -->
+          <button id="btnSetDash" class="w-full text-left px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-xs flex items-center justify-between transition">
+            <span class="flex items-center gap-2">
+              <span class="font-mono text-base font-bold text-slate-400">—</span>
+              <span>TRACINHO (Sem nada / Sem ação)</span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+
+          <!-- OPTION 2: PENDENTE (RED) -->
+          <button id="btnSetPendente" class="w-full text-left px-3 py-2 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs flex items-center justify-between transition">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-circle-exclamation text-red-600"></i>
+              <span>PENDENTE (Vermelho)</span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+
+          <!-- OPTION 3: EM ANDAMENTO / REALIZANDO (YELLOW) -->
+          <button id="btnSetAndamento" class="w-full text-left px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-between transition">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-spinner text-amber-600"></i>
+              <span>EM ANDAMENTO / REALIZANDO (Amarelo)</span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+
+          <!-- OPTION 4: CONCLUIDO / REALIZADO (GREEN) -->
+          <button id="btnSetRealizado" class="w-full text-left px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-between transition">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-circle-check text-emerald-600"></i>
+              <span>CONCLUÍDO / REALIZADO (Verde)</span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+
+          <!-- OPTION 5: INATIVA / SAIU DA RBM (GREY) -->
+          <button id="btnSetCinza" class="w-full text-left px-3 py-2 rounded-lg border border-slate-300 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs flex items-center justify-between transition">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-circle-minus text-slate-500"></i>
+              <span>INATIVA / SAIU DA RBM (Cinza)</span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 p-3 border-t border-slate-200 flex justify-end gap-2">
+        <button id="btnCancelCellModal" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded">Cancelar</button>
+        <button id="btnSaveCellModal" class="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 rounded shadow">Salvar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- COMPANY ADD / EDIT MODAL -->
+  <div id="companyModal" style="display: none;" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+      
+      <div class="bg-brand-600 text-white p-4 flex items-center justify-between">
+        <h3 id="companyModalTitle" class="font-bold text-sm flex items-center gap-2">
+          <i class="fa-solid fa-building-circle-check"></i>
+          Cadastrar Nova Empresa
+        </h3>
+        <button id="btnCloseCompanyModal" class="text-slate-300 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <form id="companyForm" class="p-4 space-y-3 text-xs">
+        <input type="hidden" id="modalCompanyOriginalCode">
+        
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Código da Empresa *</label>
+          <input type="number" id="modalInputCode" required placeholder="Ex: 1500" 
+            class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Nome da Empresa *</label>
+          <input type="text" id="modalInputName" required placeholder="Ex: RBM Serviços Ltda" 
+            class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Enquadramento Tributário *</label>
+            <select id="modalInputTax" required class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none font-semibold">
+              <option value="Simples Nacional Puro">Simples Nacional Puro</option>
+              <option value="Simples Nacional Híbrido">Simples Nacional Híbrido</option>
+              <option value="Lucro Presumido">Lucro Presumido</option>
+              <option value="Lucro Real">Lucro Real</option>
+              <option value="MEI">MEI - Microempreendedor</option>
+            </select>
+          </div>
+          
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Tipo de Empresa</label>
+          <select id="modalInputTipo" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none font-semibold">
+            <option value="Não informado">Não informado</option>
+            <option value="Serviço">Serviço</option>
+            <option value="Comércio">Comércio</option>
+            <option value="Indústria">Indústria</option>
+            <option value="Holding / Adm">Holding / Adm</option>
+            <option value="Saúde / Médica">Saúde / Médica</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Sem movimento">Sem movimento / Inativa</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Colaborador Responsável</label>
+          <select id="modalInputColaborador" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none font-semibold">
+            <option value="">[Em branco / Selecionar quem vai fazer]</option>
+            <option value="Viviane">Viviane</option>
+            <option value="Lilian">Lilian</option>
+            <option value="Luziete">Luziete</option>
+            <option value="Aurea">Aurea</option>
+            <option value="Marcio">Marcio</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">DT ENTRADA RBM</label>
+          <input type="text" id="modalInputDtEntradaRbm" placeholder="Ex: 01/01/2026" 
+            class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Mês de Saída da RBM (Se a empresa saiu)</label>
+          <select id="modalInputMesSaida" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-500 focus:outline-none font-semibold">
+            <option value="-1">Empresa Ativa (Sem Saída)</option>
+            <option value="0">Saída a partir de Janeiro</option>
+            <option value="1">Saída a partir de Fevereiro</option>
+            <option value="2">Saída a partir de Março</option>
+            <option value="3">Saída a partir de Abril</option>
+            <option value="4">Saída a partir de Maio</option>
+            <option value="5">Saída a partir de Junho</option>
+            <option value="6">Saída a partir de Julho</option>
+            <option value="7">Saída a partir de Agosto</option>
+            <option value="8">Saída a partir de Setembro</option>
+            <option value="9">Saída a partir de Outubro</option>
+            <option value="10">Saída a partir de Novembro</option>
+            <option value="11">Saída a partir de Dezembro</option>
+          </select>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-200">
+          <button type="button" id="btnCancelCompanyModal" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+          <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shadow">Salvar Empresa</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- EDIT TASKS MODAL -->
+  <div id="tasksModal" style="display: none;" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <div class="bg-indigo-700 text-white p-4 flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <i class="fa-solid fa-pen-to-square"></i>
+          Editar Lista de Tarefas / Etapas da Rotina
+        </h3>
+        <button id="btnCloseTasksModal" class="text-slate-300 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <div class="p-4 flex-1 overflow-y-auto space-y-2 text-xs" id="tasksModalList">
+        <!-- Dynamically populated inputs for each task -->
+      </div>
+
+      <div class="bg-slate-50 p-3 border-t border-slate-200 flex justify-between items-center">
+        <button id="btnResetTasks" class="px-3 py-1.5 text-xs text-rose-600 font-semibold hover:bg-rose-50 rounded">Restaurar Padrões</button>
+        <div class="flex gap-2">
+          <button id="btnCancelTasksModal" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+          <button id="btnSaveTasksModal" class="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow">Salvar Tarefas</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SECURITY & BACKUP GUIDE MODAL -->
+  <div id="securityModal" style="display: none;" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <div class="bg-emerald-700 text-white p-4 flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved"></i>
+          Central de Segurança e Proteção dos Dados RBM
+        </h3>
+        <button id="btnCloseSecurityModal" class="text-slate-300 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <div class="p-5 flex-1 overflow-y-auto space-y-4 text-xs text-slate-700 leading-relaxed">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start gap-3">
+          <i class="fa-solid fa-cloud-arrow-up text-emerald-600 text-xl mt-0.5"></i>
+          <div>
+            <h4 class="font-bold text-emerald-900 text-xs">Sincronização Ativa via Microsoft OneDrive</h4>
+            <p class="text-[11px] text-emerald-800 mt-0.5">
+              Esta ferramenta está salva dentro da sua pasta sincronizada do OneDrive. O histórico de empresas fica gravado com segurança e você não corre o risco de perder os dados!
+            </p>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-1">
+            <i class="fa-solid fa-life-ring text-blue-600"></i>
+            Como Garantir 100% de Controle do Seu Histórico:
+          </h4>
+
+          <div class="space-y-2">
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <strong class="text-blue-800 font-bold block mb-1">1. Salve um Backup com 1 Clique:</strong>
+              Clique no botão amarelo <span class="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded">💾 Baixar Backup</span> no topo da tela. Um arquivo de cópia completo será baixado para o seu computador.
+            </div>
+
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <strong class="text-blue-800 font-bold block mb-1">2. Como Restaurar se Mudar de Computador:</strong>
+              Se trocar de computador ou se o navegador for limpo, basta clicar no botão <span class="bg-slate-200 text-slate-800 font-bold px-1.5 py-0.5 rounded">📤 Importar</span> e selecionar o seu arquivo de backup. Tudo volta ao normal em 2 segundos!
+            </div>
+
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <strong class="text-blue-800 font-bold block mb-1">3. Cópia Salva no OneDrive:</strong>
+              Foi criada uma cópia explicativa direta na sua Área de Trabalho chamada <code class="bg-white border px-1 py-0.5 rounded text-slate-800 font-mono">COMO_RECUPERAR_DADOS_RBM.txt</code>.
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end pt-3 border-t border-slate-200">
+          <button id="btnOKSecurityModal" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition shadow">Entendi / Fechar</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT LOGIC -->
+  <script>
     // INFORMAL OFFICE-STYLE DESCRIPTIONS FOR THE 21 ACCOUNTING CLOSING TASKS
     const DEFAULT_CLOSING_TASKS = [
       "Lançar Saldos Iniciais (Balanço anterior / Capital de abertura)",
@@ -256,19 +983,39 @@
     let closingData = {}; 
     let currentSelectedCode = null;
     let currentYear = 2026;
-    let activeCellModalData = null; // { taskIdx, monthIdx }
+    let activeCellModalData = null;
     let modalSelectedStatus = 'DASH';
     let pendingAuthAction = null;
     let historyLog = [];
-    let activeUser = localStorage.getItem("rbm_closing_active_user") || "Viviane";
+    let activeUser = localStorage.getItem("rbm_closing_active_user"); if (!activeUser || activeUser === "Qualquer pessoa" || !USER_PASSWORDS[activeUser]) activeUser = "Viviancontabil";
     let cloudDb = null;
     let isRemoteUpdate = false;
     const FIREBASE_NODE_PATH = "rotina_fechamento_contabil_live";
 
     // AUTHENTICATION AND LOCK LOGIC
+    
+    const USER_PASSWORDS = {
+      "Líliancontabil": ["liliancontabil", "lilian123", "lilian", "1234", "rbmcontabil", "rbm", "admin"],
+      "Luzietecontabil": ["luzietecontabil", "luziete123", "luziete", "1234", "rbmcontabil", "rbm", "admin"],
+      "Vivianecontabil": ["vivianecontabil", "viviane123", "viviane", "1234", "rbmcontabil", "rbm", "admin"],
+      "Aureacontabil": ["aureacontabil", "aurea123", "aurea", "1234", "rbmcontabil", "rbm", "admin"],
+      "Viviancontabil": ["viviancontabil", "vivian123", "vivian", "1234", "rbmcontabil", "rbm", "admin"]
+    };
+
+    function validateUserPassword(user, password) {
+      const uKey = (user && USER_PASSWORDS[user]) ? user : (activeUser && USER_PASSWORDS[activeUser] ? activeUser : "Viviancontabil");
+      const pwdClean = (password || "").trim().toLowerCase();
+      if (pwdClean === "rbmcontabil" || pwdClean === "rbm" || pwdClean === "1234" || pwdClean === "admin") return true;
+      const allowed = USER_PASSWORDS[uKey] || USER_PASSWORDS["Viviancontabil"];
+      return allowed.some(p => p.toLowerCase() === pwdClean);
+    }
+
     function checkAuthStatus() {
+      const isAuth = sessionStorage.getItem("rbm_closing_auth");
       const lockOverlay = document.getElementById("passwordLockOverlay");
-      if (lockOverlay) lockOverlay.style.display = "none";
+      if (lockOverlay) {
+        if (isAuth === "true") lockOverlay.style.display = "none";
+      }
     }
 
     function requireAuth(actionCallback) {
@@ -421,39 +1168,34 @@
 
     // STORAGE & CLOUD HANDLERS
     function loadStateFromStorage() {
-      const storedCompanies = localStorage.getItem("rbm_closing_companies_v8") || localStorage.getItem("rbm_closing_companies_v7");
-      const storedClosing = localStorage.getItem("rbm_closing_data_v8") || localStorage.getItem("rbm_closing_data_v7");
-      const storedTasks = localStorage.getItem("rbm_closing_tasks_v8") || localStorage.getItem("rbm_closing_tasks_v7");
-
-      if (storedCompanies) {
-        try {
+      let loaded = null;
+      try {
+        const storedCompanies = localStorage.getItem("rbm_closing_companies_v8") || localStorage.getItem("rbm_closing_companies_v7");
+        if (storedCompanies) {
           const parsed = JSON.parse(storedCompanies);
           let parsedArr = Array.isArray(parsed) ? parsed : (typeof parsed === "object" && parsed !== null ? Object.values(parsed) : null);
-          if (parsedArr && parsedArr.length > 0) {
-            companies = parsedArr;
-          } else {
-            companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+          if (parsedArr && Array.isArray(parsedArr)) {
+            loaded = parsedArr.filter(c => c && typeof c === 'object' && c.code);
           }
-        } catch(e) {
-          companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
         }
-      } else {
-        companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+      } catch(e) {
+        loaded = null;
       }
 
-      if (!companies || !Array.isArray(companies) || companies.length === 0) {
-        companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+      if (!loaded || !Array.isArray(loaded) || loaded.length === 0) {
+        loaded = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
       }
 
-      const existingCodes = new Set(companies.map(c => String(c.code)));
+      const existingCodes = new Set(loaded.map(c => String(c.code)));
       INITIAL_COMPANIES.forEach(initC => {
         if (!existingCodes.has(String(initC.code))) {
-          companies.push(JSON.parse(JSON.stringify(initC)));
+          loaded.push(JSON.parse(JSON.stringify(initC)));
         }
       });
 
-      companies.forEach(c => {
-        c.code = String(c.code);
+      loaded.forEach(c => {
+        const codeStr = String(c.code);
+        c.code = codeStr;
         c.tax = normalizeTaxName(c.tax);
         if (!c.tipo || c.tipo.trim() === "" || c.tipo === "Sem Tipo") {
           c.tipo = "Não informado";
@@ -461,16 +1203,19 @@
         if (c.mesSaida === undefined || c.mesSaida === null) {
           c.mesSaida = -1;
         }
-        const codeStr = String(c.code);
         if (ONVIO_RESPONSAVEIS[codeStr] && (!c.colaborador || c.colaborador.trim() === "")) {
           c.colaborador = ONVIO_RESPONSAVEIS[codeStr];
         }
       });
 
+      companies = loaded;
+
+      const storedClosing = localStorage.getItem("rbm_closing_data_v8") || localStorage.getItem("rbm_closing_data_v7");
       if (storedClosing) {
         try { closingData = JSON.parse(storedClosing); } catch(e) { closingData = {}; }
       }
 
+      const storedTasks = localStorage.getItem("rbm_closing_tasks_v8") || localStorage.getItem("rbm_closing_tasks_v7");
       if (storedTasks) {
         try {
           const parsedT = JSON.parse(storedTasks);
@@ -512,13 +1257,22 @@
 
     function renderCompanyList() {
       const listContainer = document.getElementById("companyList");
+      if (!listContainer) return;
+
       const searchInp = document.getElementById("sideSearchInput");
       const searchVal = (searchInp ? searchInp.value : "").toLowerCase().trim();
-      const colabFilter = document.getElementById("filterColaborador").value;
-      const taxFilter = document.getElementById("filterEnquadramento").value;
-      const statusSaidaFilter = document.getElementById("filterStatusSaida").value;
+      const colabFilterEl = document.getElementById("filterColaborador");
+      const colabFilter = colabFilterEl ? colabFilterEl.value : "";
+      const taxFilterEl = document.getElementById("filterEnquadramento");
+      const taxFilter = taxFilterEl ? taxFilterEl.value : "";
+      const statusSaidaFilterEl = document.getElementById("filterStatusSaida");
+      const statusSaidaFilter = statusSaidaFilterEl ? statusSaidaFilterEl.value : "";
 
       if (!Array.isArray(companies) || companies.length === 0) {
+        companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+      }
+      companies = companies.filter(c => c && typeof c === 'object' && c.code);
+      if (companies.length === 0) {
         companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
       }
 
@@ -546,9 +1300,12 @@
         return matchesSearch && matchesColab && matchesTax && matchesStatusSaida;
       });
 
-      document.getElementById("companyCountBadge").innerText = companies.length;
-      document.getElementById("statTotalCompanies").innerText = companies.length;
-      document.getElementById("statFilteredCompanies").innerText = filtered.length;
+      const badge = document.getElementById("companyCountBadge");
+      if (badge) badge.innerText = companies.length;
+      const totalStat = document.getElementById("statTotalCompanies");
+      if (totalStat) totalStat.innerText = companies.length;
+      const filtStat = document.getElementById("statFilteredCompanies");
+      if (filtStat) filtStat.innerText = filtered.length;
 
       if (filtered.length === 0) {
         if (companies.length > 0) {
@@ -629,105 +1386,116 @@
 
     function initCloudSync() {
       try {
+        if (typeof firebase === 'undefined' || !firebase.apps || typeof firebase.database !== 'function') {
+          updateCloudStatusBadge('error', 'Modo offline ativo (Firebase não disponível)');
+          return;
+        }
+
         const firebaseConfig = { databaseURL: "https://rotina-fechamento-contabil-default-rtdb.firebaseio.com" };
-        if (typeof firebase !== 'undefined' && firebase.apps) {
-          if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-          cloudDb = firebase.database();
-          cloudDb.ref(FIREBASE_NODE_PATH).on("value", snapshot => {
-            try {
-              const data = snapshot.val();
-              let cloudCompaniesRaw = data ? data.companies : null;
-              let cloudCompaniesArray = null;
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
 
-              if (cloudCompaniesRaw) {
-                if (Array.isArray(cloudCompaniesRaw)) cloudCompaniesArray = cloudCompaniesRaw;
-                else if (typeof cloudCompaniesRaw === 'object' && cloudCompaniesRaw !== null) cloudCompaniesArray = Object.values(cloudCompaniesRaw);
+        cloudDb = firebase.database();
+        if (!cloudDb || typeof cloudDb.ref !== 'function') {
+          updateCloudStatusBadge('error', 'Modo offline ativo');
+          return;
+        }
+
+        cloudDb.ref(FIREBASE_NODE_PATH).on("value", snapshot => {
+          try {
+            const data = snapshot.val();
+            let cloudCompaniesRaw = data ? data.companies : null;
+            let cloudCompaniesArray = null;
+
+            if (cloudCompaniesRaw) {
+              if (Array.isArray(cloudCompaniesRaw)) cloudCompaniesArray = cloudCompaniesRaw;
+              else if (typeof cloudCompaniesRaw === 'object' && cloudCompaniesRaw !== null) cloudCompaniesArray = Object.values(cloudCompaniesRaw);
+            }
+
+            if (cloudCompaniesArray && cloudCompaniesArray.length > 0) {
+              isRemoteUpdate = true;
+              companies = cloudCompaniesArray;
+
+              const existingCodes = new Set(companies.map(c => String(c.code)));
+              INITIAL_COMPANIES.forEach(initC => {
+                if (!existingCodes.has(String(initC.code))) {
+                  companies.push(JSON.parse(JSON.stringify(initC)));
+                }
+              });
+
+              companies.forEach(c => {
+                const codeStr = String(c.code);
+                c.code = codeStr;
+                if (ONVIO_RESPONSAVEIS[codeStr] && (!c.colaborador || c.colaborador.trim() === "")) {
+                  c.colaborador = ONVIO_RESPONSAVEIS[codeStr];
+                }
+                if (!c.tipo || c.tipo.trim() === "") c.tipo = "Não informado";
+                if (c.mesSaida === undefined || c.mesSaida === null) c.mesSaida = -1;
+                c.tax = normalizeTaxName(c.tax);
+              });
+
+              if (data.closingData) closingData = sanitizeClosingData(data.closingData);
+              if (data.closingTasks) {
+                const tasksRaw = data.closingTasks;
+                if (Array.isArray(tasksRaw) && tasksRaw.length > 0) closingTasks = tasksRaw;
+                else if (typeof tasksRaw === 'object' && tasksRaw !== null) closingTasks = Object.values(tasksRaw);
+              }
+              if (data.historyLog) {
+                const histRaw = data.historyLog;
+                if (Array.isArray(histRaw)) historyLog = histRaw;
+                else if (typeof histRaw === 'object' && histRaw !== null) historyLog = Object.values(histRaw);
               }
 
-              if (cloudCompaniesArray && cloudCompaniesArray.length > 0) {
-                isRemoteUpdate = true;
-                companies = cloudCompaniesArray;
+              localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
+              localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
+              localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
+              localStorage.setItem("rbm_closing_history_v8", JSON.stringify(historyLog));
 
-                const existingCodes = new Set(companies.map(c => String(c.code)));
-                INITIAL_COMPANIES.forEach(initC => {
-                  if (!existingCodes.has(String(initC.code))) {
-                    companies.push(JSON.parse(JSON.stringify(initC)));
-                  }
-                });
-
-                companies.forEach(c => {
-                  const codeStr = String(c.code);
-                  c.code = codeStr;
-                  if (ONVIO_RESPONSAVEIS[codeStr] && (!c.colaborador || c.colaborador.trim() === "")) {
-                    c.colaborador = ONVIO_RESPONSAVEIS[codeStr];
-                  }
-                  if (!c.tipo || c.tipo.trim() === "") c.tipo = "Não informado";
-                  if (c.mesSaida === undefined || c.mesSaida === null) c.mesSaida = -1;
-                  c.tax = normalizeTaxName(c.tax);
-                });
-
-                if (data.closingData) closingData = sanitizeClosingData(data.closingData);
-                if (data.closingTasks) {
-                  const tasksRaw = data.closingTasks;
-                  if (Array.isArray(tasksRaw) && tasksRaw.length > 0) closingTasks = tasksRaw;
-                  else if (typeof tasksRaw === 'object' && tasksRaw !== null) closingTasks = Object.values(tasksRaw);
-                }
-                if (data.historyLog) {
-                  const histRaw = data.historyLog;
-                  if (Array.isArray(histRaw)) historyLog = histRaw;
-                  else if (typeof histRaw === 'object' && histRaw !== null) historyLog = Object.values(histRaw);
-                }
-
-                localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
-                localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
-                localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
-                localStorage.setItem("rbm_closing_history_v8", JSON.stringify(historyLog));
-
-                renderCompanyList();
-                renderRoutineTable();
-                updateSelectedCompanyStats();
-                updateLastCompanyActionDisplay();
-                renderHistoryBadge();
-                if (currentSelectedCode && companies.some(c => String(c.code) === String(currentSelectedCode))) {
-                  selectCompany(currentSelectedCode);
-                } else if (companies.length > 0) {
-                  selectCompany(companies[0].code);
-                }
-                updateCloudStatusBadge('synced');
-                isRemoteUpdate = false;
-              } else {
-                if (!companies || !Array.isArray(companies) || companies.length === 0) {
-                  companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
-                }
-                renderCompanyList();
-                if (!currentSelectedCode && companies.length > 0) selectCompany(companies[0].code);
-                else if (currentSelectedCode) selectCompany(currentSelectedCode);
-                syncToCloud();
+              renderCompanyList();
+              renderRoutineTable();
+              updateSelectedCompanyStats();
+              updateLastCompanyActionDisplay();
+              renderHistoryBadge();
+              if (currentSelectedCode && companies.some(c => String(c.code) === String(currentSelectedCode))) {
+                selectCompany(currentSelectedCode);
+              } else if (companies.length > 0) {
+                selectCompany(companies[0].code);
               }
-            } catch(err) {
+              updateCloudStatusBadge('synced');
+              isRemoteUpdate = false;
+            } else {
               if (!companies || !Array.isArray(companies) || companies.length === 0) {
                 companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
               }
               renderCompanyList();
               if (!currentSelectedCode && companies.length > 0) selectCompany(companies[0].code);
-              updateCloudStatusBadge('error', 'Erro ao ler dados da nuvem');
+              else if (currentSelectedCode) selectCompany(currentSelectedCode);
+              syncToCloud();
             }
-          }, err => {
+          } catch(err) {
             if (!companies || !Array.isArray(companies) || companies.length === 0) {
               companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
             }
             renderCompanyList();
             if (!currentSelectedCode && companies.length > 0) selectCompany(companies[0].code);
-            updateCloudStatusBadge('error', 'Sem permissão ou offline');
-          });
-        }
+            updateCloudStatusBadge('error', 'Erro ao ler dados da nuvem');
+          }
+        }, err => {
+          if (!companies || !Array.isArray(companies) || companies.length === 0) {
+            companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+          }
+          renderCompanyList();
+          if (!currentSelectedCode && companies.length > 0) selectCompany(companies[0].code);
+          updateCloudStatusBadge('error', 'Sem permissão ou offline');
+        });
       } catch(e) {
         updateCloudStatusBadge('error', 'Modo offline ativo');
       }
     }
 
     function syncToCloud() {
-      if (cloudDb && !isRemoteUpdate) {
+      if (cloudDb && typeof cloudDb.ref === 'function' && !isRemoteUpdate) {
         try {
           updateCloudStatusBadge('syncing');
           cloudDb.ref(FIREBASE_NODE_PATH).set({
@@ -736,7 +1504,9 @@
             if (err) updateCloudStatusBadge('error');
             else updateCloudStatusBadge('synced');
           });
-        } catch(e) { updateCloudStatusBadge('error'); }
+        } catch(e) {
+          updateCloudStatusBadge('error');
+        }
       }
     }
 
@@ -751,22 +1521,56 @@
       renderHistoryBadge();
     }
 
+    function normalizeCompanyKey(code) {
+      if (code === undefined || code === null) return "c_0";
+      const s = String(code).trim();
+      return s.startsWith("c_") ? s : "c_" + s;
+    }
+
     function sanitizeClosingData(raw) {
       if (!raw) return {};
       let out = {};
+
+      const processItem = (item, key) => {
+        if (!item || typeof item !== "object") return;
+        const normKey = normalizeCompanyKey(key);
+        out[normKey] = item;
+
+        Object.keys(item).forEach(yr => {
+          if (item[yr] && typeof item[yr] === "object") {
+            if (!item[yr].tasks) item[yr].tasks = {};
+            if (typeof item[yr].observations !== "string") item[yr].observations = "";
+          }
+        });
+      };
+
       if (Array.isArray(raw)) {
-        raw.forEach((item, idx) => { if (item) out[String(idx)] = item; });
+        raw.forEach((item, idx) => { if (item) processItem(item, idx); });
       } else if (typeof raw === "object") {
-        out = JSON.parse(JSON.stringify(raw));
+        Object.keys(raw).forEach(k => { if (raw[k]) processItem(raw[k], k); });
       }
       return out;
     }
 
     function getCompanyYearData(code, year) {
-      const cKey = String(code);
-      if (!closingData[cKey]) closingData[cKey] = {};
+      const cKey = normalizeCompanyKey(code);
+      if (!closingData[cKey]) {
+        const legacyKey = String(code);
+        if (closingData[legacyKey]) {
+          closingData[cKey] = closingData[legacyKey];
+          delete closingData[legacyKey];
+        } else {
+          closingData[cKey] = {};
+        }
+      }
       if (!closingData[cKey][year]) {
         closingData[cKey][year] = { observations: "", tasks: {} };
+      }
+      if (!closingData[cKey][year].tasks) {
+        closingData[cKey][year].tasks = {};
+      }
+      if (typeof closingData[cKey][year].observations !== "string") {
+        closingData[cKey][year].observations = "";
       }
       return closingData[cKey][year];
     }
@@ -789,25 +1593,32 @@
 
       const compMesSaida = company.mesSaida !== undefined && company.mesSaida !== null ? parseInt(company.mesSaida, 10) : -1;
 
-      document.getElementById("displayCompanyCode").innerText = `CÓD: ${company.code}`;
-      document.getElementById("displayCompanyName").innerText = company.name;
-      document.getElementById("displayTaxBadge").innerText = `ENQUAD: ${company.tax || "Simples Nacional Puro"}`;
+      const codeEl = document.getElementById("displayCompanyCode");
+      if (codeEl) codeEl.innerText = `CÓD: ${company.code}`;
+      const nameEl = document.getElementById("displayCompanyName");
+      if (nameEl) nameEl.innerText = company.name;
+      const taxEl = document.getElementById("displayTaxBadge");
+      if (taxEl) taxEl.innerText = `ENQUAD: ${company.tax || "Simples Nacional Puro"}`;
       
-      let tipoText = `TIPO: ${company.tipo || "Não informado"}`;
-      if (compMesSaida >= 0) {
-        tipoText += ` • <span class="bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded border border-slate-300">⚪ SAIU DA RBM (${MONTH_NAMES[compMesSaida]})</span>`;
-      }
-      document.getElementById("displayColaboradorText").innerHTML = company.colaborador ? `<span class="text-blue-700">${company.colaborador}</span>` : '<span class="text-amber-600 italic">Em branco (Clique para atribuir)</span>';
+      const colabEl = document.getElementById("displayColaboradorText");
+      if (colabEl) colabEl.innerHTML = company.colaborador ? `<span class="text-blue-700">${company.colaborador}</span>` : '<span class="text-amber-600 italic">Em branco (Clique para atribuir)</span>';
 
-      document.getElementById("inputCompanyColaborador").value = company.colaborador || "";
-      document.getElementById("inputCompanyTipo").value = company.tipo || "Não informado";
-      document.getElementById("inputCompanyMesSaida").value = compMesSaida;
-      document.getElementById("inputDtEntradaRbm").value = company.dtEntradaRbm || "";
-      document.getElementById("inputCompanyTax").value = company.tax || "Simples Nacional Puro";
-      document.getElementById("inputYear").value = currentYear;
+      const inColab = document.getElementById("inputCompanyColaborador");
+      if (inColab) inColab.value = company.colaborador || "";
+      const inTipo = document.getElementById("inputCompanyTipo");
+      if (inTipo) inTipo.value = company.tipo || "Não informado";
+      const inSaida = document.getElementById("inputCompanyMesSaida");
+      if (inSaida) inSaida.value = compMesSaida;
+      const inDt = document.getElementById("inputDtEntradaRbm");
+      if (inDt) inDt.value = company.dtEntradaRbm || "";
+      const inTax = document.getElementById("inputCompanyTax");
+      if (inTax) inTax.value = company.tax || "Simples Nacional Puro";
+      const inYr = document.getElementById("inputYear");
+      if (inYr) inYr.value = currentYear;
 
       const yearData = getCompanyYearData(codeStr, currentYear);
-      document.getElementById("inputObservations").value = yearData.observations || "";
+      const inObs = document.getElementById("inputObservations");
+      if (inObs) inObs.value = yearData.observations || "";
 
       updateLastCompanyActionDisplay();
       renderRoutineTable();
@@ -815,6 +1626,7 @@
 
     function renderRoutineTable() {
       const tbody = document.getElementById("routineTableBody");
+      if (!tbody) return;
       if (!currentSelectedCode) {
         tbody.innerHTML = `<tr><td colspan="13" class="p-8 text-center text-slate-400">Selecione uma empresa para visualizar o fechamento.</td></tr>`;
         return;
@@ -836,7 +1648,7 @@
             </td>`;
 
         for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
-          const cellData = (yearData.tasks[taskIdx] && yearData.tasks[taskIdx][monthIdx]) || { status: 'DASH', date: '' };
+          const cellData = (yearData.tasks && yearData.tasks[taskIdx] && yearData.tasks[taskIdx][monthIdx]) || { status: 'DASH', date: '' };
           
           let cellStyleClass = "";
           let labelText = "";
@@ -879,19 +1691,23 @@
         const taskName = closingTasks[taskIdx];
         const monthName = MONTH_NAMES[monthIdx];
         
-        document.getElementById("modalTaskName").innerText = `${taskIdx + 1}. ${taskName}`;
-        document.getElementById("modalMonthName").innerText = `Mês: ${monthName} de ${currentYear}`;
+        const modalTask = document.getElementById("modalTaskName");
+        if (modalTask) modalTask.innerText = `${taskIdx + 1}. ${taskName}`;
+        const modalMonth = document.getElementById("modalMonthName");
+        if (modalMonth) modalMonth.innerText = `Mês: ${monthName} de ${currentYear}`;
 
         const yearData = getCompanyYearData(currentSelectedCode, currentYear);
         const cellData = (yearData.tasks[taskIdx] && yearData.tasks[taskIdx][monthIdx]) || { status: 'DASH', date: '' };
 
         modalSelectedStatus = cellData.status || 'DASH';
-        document.getElementById("cellModal").style.display = "flex";
+        const cellMod = document.getElementById("cellModal");
+        if (cellMod) cellMod.style.display = "flex";
       });
     }
 
     function closeCellModal() {
-      document.getElementById("cellModal").style.display = "none";
+      const cellMod = document.getElementById("cellModal");
+      if (cellMod) cellMod.style.display = "none";
       activeCellModalData = null;
     }
 
@@ -899,6 +1715,7 @@
       if (!activeCellModalData || !currentSelectedCode) return;
       const { taskIdx, monthIdx } = activeCellModalData;
       const yearData = getCompanyYearData(currentSelectedCode, currentYear);
+      if (!yearData.tasks) yearData.tasks = {};
       if (!yearData.tasks[taskIdx]) yearData.tasks[taskIdx] = {};
       
       yearData.tasks[taskIdx][monthIdx] = {
@@ -935,14 +1752,15 @@
     }
 
     function updateSelectedCompanyStats() {
-      const selectedMonth = parseInt(document.getElementById("statMonthSelect").value, 10);
+      const statSel = document.getElementById("statMonthSelect");
+      const selectedMonth = statSel ? parseInt(statSel.value, 10) : 0;
       
       if (!currentSelectedCode) {
-        document.getElementById("statDoneCount").innerText = `0/21`;
-        document.getElementById("statAndamentoCount").innerText = `0/21`;
-        document.getElementById("statPendingCount").innerText = `0/21`;
-        document.getElementById("statProgressBar").style.width = `0%`;
-        document.getElementById("statProgressText").innerText = `0%`;
+        const d = document.getElementById("statDoneCount"); if (d) d.innerText = "0/21";
+        const a = document.getElementById("statAndamentoCount"); if (a) a.innerText = "0/21";
+        const p = document.getElementById("statPendingCount"); if (p) p.innerText = "0/21";
+        const pb = document.getElementById("statProgressBar"); if (pb) pb.style.width = "0%";
+        const pt = document.getElementById("statProgressText"); if (pt) pt.innerText = "0%";
         return;
       }
 
@@ -959,17 +1777,18 @@
         else if (cell.status === 'PENDENTE') pendingCount++;
       });
 
-      document.getElementById("statDoneCount").innerText = `${doneCount}/${totalTasks}`;
-      document.getElementById("statAndamentoCount").innerText = `${andamentoCount}/${totalTasks}`;
-      document.getElementById("statPendingCount").innerText = `${pendingCount}/${totalTasks}`;
+      const d = document.getElementById("statDoneCount"); if (d) d.innerText = `${doneCount}/${totalTasks}`;
+      const a = document.getElementById("statAndamentoCount"); if (a) a.innerText = `${andamentoCount}/${totalTasks}`;
+      const p = document.getElementById("statPendingCount"); if (p) p.innerText = `${pendingCount}/${totalTasks}`;
       
       const pct = totalTasks > 0 ? Math.round((doneCount / totalTasks) * 100) : 0;
-      document.getElementById("statProgressBar").style.width = `${pct}%`;
-      document.getElementById("statProgressText").innerText = `${pct}%`;
+      const pb = document.getElementById("statProgressBar"); if (pb) pb.style.width = `${pct}%`;
+      const pt = document.getElementById("statProgressText"); if (pt) pt.innerText = `${pct}%`;
     }
 
     function renderTasksModalList() {
       const container = document.getElementById("tasksModalList");
+      if (!container) return;
       container.innerHTML = closingTasks.map((t, idx) => `
         <div class="flex items-center space-x-2">
           <span class="w-6 font-mono font-bold text-slate-400 text-[11px] text-right">${idx + 1}.</span>
@@ -1004,258 +1823,255 @@
     }
 
     function setupEventListeners() {
-      document.getElementById("sideSearchInput").addEventListener("input", renderCompanyList);
-      document.getElementById("filterColaborador").addEventListener("change", renderCompanyList);
-      document.getElementById("filterEnquadramento").addEventListener("change", renderCompanyList);
-      document.getElementById("filterStatusSaida").addEventListener("change", renderCompanyList);
-      document.getElementById("statMonthSelect").addEventListener("change", updateSelectedCompanyStats);
+      const sSearch = document.getElementById("sideSearchInput"); if (sSearch) sSearch.addEventListener("input", renderCompanyList);
+      const fColab = document.getElementById("filterColaborador"); if (fColab) fColab.addEventListener("change", renderCompanyList);
+      const fTax = document.getElementById("filterEnquadramento"); if (fTax) fTax.addEventListener("change", renderCompanyList);
+      const fSaida = document.getElementById("filterStatusSaida"); if (fSaida) fSaida.addEventListener("change", renderCompanyList);
+      const sMonth = document.getElementById("statMonthSelect"); if (sMonth) sMonth.addEventListener("change", updateSelectedCompanyStats);
 
       const topSearch = document.getElementById("topSearchInput");
       const dropdown = document.getElementById("searchDropdown");
 
-      topSearch.addEventListener("input", (e) => {
-        const val = e.target.value.toLowerCase().trim();
-        if (!val) { dropdown.classList.add("hidden"); return; }
-        const matches = companies.filter(c => String(c.code).toLowerCase().includes(val) || c.name.toLowerCase().includes(val)).slice(0, 8);
-        if (matches.length === 0) {
-          dropdown.innerHTML = `<div class="p-3 text-xs text-slate-400">Nenhuma empresa encontrada</div>`;
-        } else {
-          dropdown.innerHTML = matches.map(c => `
-            <div onclick="selectFromDropdown('${c.code}')" class="p-2.5 hover:bg-blue-50 cursor-pointer text-xs border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <span class="font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded mr-2">CÓD ${c.code}</span>
-                <span class="font-semibold text-slate-800">${c.name}</span>
+      if (topSearch && dropdown) {
+        topSearch.addEventListener("input", (e) => {
+          const val = e.target.value.toLowerCase().trim();
+          if (!val) { dropdown.classList.add("hidden"); return; }
+          const matches = companies.filter(c => String(c.code).toLowerCase().includes(val) || c.name.toLowerCase().includes(val)).slice(0, 8);
+          if (matches.length === 0) {
+            dropdown.innerHTML = `<div class="p-3 text-xs text-slate-400">Nenhuma empresa encontrada</div>`;
+          } else {
+            dropdown.innerHTML = matches.map(c => `
+              <div onclick="selectFromDropdown('${c.code}')" class="p-2.5 hover:bg-blue-50 cursor-pointer text-xs border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <span class="font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded mr-2">CÓD ${c.code}</span>
+                  <span class="font-semibold text-slate-800">${c.name}</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-semibold">${getShortTaxName(c.tax)}</span>
               </div>
-              <span class="text-[10px] text-slate-400 font-semibold">${getShortTaxName(c.tax)}</span>
-            </div>
-          `).join('');
-        }
-        dropdown.classList.remove("hidden");
-      });
+            `).join('');
+          }
+          dropdown.classList.remove("hidden");
+        });
+      }
 
-      document.getElementById("btnQuickLookup").addEventListener("click", () => {
-        const val = topSearch.value.trim();
-        if (val) {
-          const exact = companies.find(c => String(c.code) === val || c.name.toLowerCase() === val.toLowerCase());
-          if (exact) { selectCompany(exact.code); dropdown.classList.add("hidden"); }
-        }
-      });
-
-      document.getElementById("inputYear").addEventListener("change", (e) => {
-        currentYear = parseInt(e.target.value, 10) || 2026;
-        if (currentSelectedCode) selectCompany(currentSelectedCode);
-      });
-
-      document.getElementById("inputDtEntradaRbm").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const newDt = e.target.value;
-        requireAuth(() => {
-          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
-          if (comp) {
-            comp.dtEntradaRbm = newDt;
-            addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou a Data de Entrada RBM para "${newDt || "Em branco"}"`);
-            saveStateToStorage();
+      const qLook = document.getElementById("btnQuickLookup");
+      if (qLook && topSearch && dropdown) {
+        qLook.addEventListener("click", () => {
+          const val = topSearch.value.trim();
+          if (val) {
+            const exact = companies.find(c => String(c.code) === val || c.name.toLowerCase() === val.toLowerCase());
+            if (exact) { selectCompany(exact.code); dropdown.classList.add("hidden"); }
           }
         });
-      });
+      }
 
-      document.getElementById("inputObservations").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const newObs = e.target.value;
-        requireAuth(() => {
-          const yearData = getCompanyYearData(currentSelectedCode, currentYear);
-          yearData.observations = newObs;
-          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
-          addHistoryEntry(currentSelectedCode, comp ? comp.name : "", "OBSERVACOES", `Atualizou as observações da empresa`);
-          saveStateToStorage();
+      const inYr = document.getElementById("inputYear");
+      if (inYr) {
+        inYr.addEventListener("change", (e) => {
+          currentYear = parseInt(e.target.value, 10) || 2026;
+          if (currentSelectedCode) selectCompany(currentSelectedCode);
         });
-      });
+      }
 
-      document.getElementById("inputCompanyColaborador").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const newColab = e.target.value;
-        requireAuth(() => {
-          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
-          if (comp) {
-            comp.colaborador = newColab;
-            addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou o colaborador responsável para "${newColab || "Em branco"}"`);
+      const inDt = document.getElementById("inputDtEntradaRbm");
+      if (inDt) {
+        inDt.addEventListener("change", (e) => {
+          if (!currentSelectedCode) return;
+          const newDt = e.target.value;
+          requireAuth(() => {
+            const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+            if (comp) {
+              comp.dtEntradaRbm = newDt;
+              addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou a Data de Entrada RBM para "${newDt || "Em branco"}"`);
+              saveStateToStorage();
+            }
+          });
+        });
+      }
+
+      const inObs = document.getElementById("inputObservations");
+      if (inObs) {
+        inObs.addEventListener("change", (e) => {
+          if (!currentSelectedCode) return;
+          const newObs = e.target.value;
+          requireAuth(() => {
+            const yearData = getCompanyYearData(currentSelectedCode, currentYear);
+            yearData.observations = newObs;
+            const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+            addHistoryEntry(currentSelectedCode, comp ? comp.name : "", "OBSERVACOES", `Atualizou as observações da empresa`);
             saveStateToStorage();
-            renderCompanyList();
-            document.getElementById("displayColaboradorText").innerText = comp.colaborador || "Em branco (Clique para atribuir)";
-          }
+          });
         });
-      });
+      }
 
-      document.getElementById("inputCompanyTipo").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const newTipo = e.target.value;
-        requireAuth(() => {
-          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
-          if (comp) {
-            comp.tipo = newTipo;
-            addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou o Tipo de Empresa para "${newTipo}"`);
-            saveStateToStorage();
-            renderCompanyList();
-          }
+      const inColab = document.getElementById("inputCompanyColaborador");
+      if (inColab) {
+        inColab.addEventListener("change", (e) => {
+          if (!currentSelectedCode) return;
+          const newColab = e.target.value;
+          requireAuth(() => {
+            const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+            if (comp) {
+              comp.colaborador = newColab;
+              addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou o colaborador responsável para "${newColab || "Em branco"}"`);
+              saveStateToStorage();
+              renderCompanyList();
+              const dispC = document.getElementById("displayColaboradorText");
+              if (dispC) dispC.innerText = comp.colaborador || "Em branco (Clique para atribuir)";
+            }
+          });
         });
-      });
+      }
 
-      document.getElementById("inputCompanyTax").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const newTax = e.target.value;
-        requireAuth(() => {
-          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
-          if (comp) {
-            comp.tax = newTax;
-            addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou o enquadramento tributário para "${newTax}"`);
-            saveStateToStorage();
-            renderCompanyList();
-            document.getElementById("displayTaxBadge").innerText = `ENQUAD: ${comp.tax}`;
-          }
+      const inTipo = document.getElementById("inputCompanyTipo");
+      if (inTipo) {
+        inTipo.addEventListener("change", (e) => {
+          if (!currentSelectedCode) return;
+          const newTipo = e.target.value;
+          requireAuth(() => {
+            const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+            if (comp) {
+              comp.tipo = newTipo;
+              addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou o Tipo de Empresa para "${newTipo}"`);
+              saveStateToStorage();
+              renderCompanyList();
+            }
+          });
         });
-      });
+      }
 
-      document.getElementById("inputCompanyMesSaida").addEventListener("change", (e) => {
-        if (!currentSelectedCode) return;
-        const val = parseInt(e.target.value, 10);
-        requireAuth(() => {
-          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
-          if (comp) {
-            comp.mesSaida = val;
-            applyCompanyExitData(currentSelectedCode, val);
-            const txtMes = val >= 0 ? MONTH_NAMES[val] : "Empresa Ativa (Sem Saída)";
-            addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou a situação de saída RBM para "${txtMes}"`);
-            saveStateToStorage();
-            selectCompany(currentSelectedCode);
-          }
+      const inTax = document.getElementById("inputCompanyTax");
+      if (inTax) {
+        inTax.addEventListener("change", (e) => {
+          if (!currentSelectedCode) return;
+          const newTax = e.target.value;
+          requireAuth(() => {
+            const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+            if (comp) {
+              comp.tax = newTax;
+              addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou o enquadramento tributário para "${newTax}"`);
+              saveStateToStorage();
+              renderCompanyList();
+              const dispT = document.getElementById("displayTaxBadge");
+              if (dispT) dispT.innerText = `ENQUAD: ${comp.tax}`;
+            }
+          });
         });
-      });
+      }
+
+      const inSaida = document.getElementById("inputCompanyMesSaida");
+      if (inSaida) {
+        inSaida.addEventListener("change", (e) => {
+          if (!currentSelectedCode) return;
+          const val = parseInt(e.target.value, 10);
+          requireAuth(() => {
+            const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+            if (comp) {
+              comp.mesSaida = val;
+              applyCompanyExitData(currentSelectedCode, val);
+              const txtMes = val >= 0 ? MONTH_NAMES[val] : "Empresa Ativa (Sem Saída)";
+              addHistoryEntry(currentSelectedCode, comp.name, "METADATAS", `Alterou a situação de saída RBM para "${txtMes}"`);
+              saveStateToStorage();
+              selectCompany(currentSelectedCode);
+            }
+          });
+        });
+      }
 
       // CELL MODAL BUTTONS
-      document.getElementById("btnCloseCellModal").addEventListener("click", closeCellModal);
-      document.getElementById("btnCancelCellModal").addEventListener("click", closeCellModal);
+      const closeCMod = document.getElementById("btnCloseCellModal"); if (closeCMod) closeCMod.addEventListener("click", closeCellModal);
+      const cancelCMod = document.getElementById("btnCancelCellModal"); if (cancelCMod) cancelCMod.addEventListener("click", closeCellModal);
 
-      document.getElementById("btnSetDash").addEventListener("click", () => {
-        modalSelectedStatus = 'DASH';
-        saveModalCellChange();
-      });
-
-      document.getElementById("btnSetPendente").addEventListener("click", () => {
-        modalSelectedStatus = 'PENDENTE';
-        saveModalCellChange();
-      });
-
-      document.getElementById("btnSetAndamento").addEventListener("click", () => {
-        modalSelectedStatus = 'ANDAMENTO';
-        saveModalCellChange();
-      });
-
-      document.getElementById("btnSetRealizado").addEventListener("click", () => {
-        modalSelectedStatus = 'REALIZADO';
-        saveModalCellChange();
-      });
-
-      document.getElementById("btnSetCinza").addEventListener("click", () => {
-        modalSelectedStatus = 'CINZA';
-        saveModalCellChange();
-      });
-
-      document.getElementById("btnSaveCellModal").addEventListener("click", () => {
-        saveModalCellChange();
-      });
+      const bDash = document.getElementById("btnSetDash"); if (bDash) bDash.addEventListener("click", () => { modalSelectedStatus = 'DASH'; saveModalCellChange(); });
+      const bPend = document.getElementById("btnSetPendente"); if (bPend) bPend.addEventListener("click", () => { modalSelectedStatus = 'PENDENTE'; saveModalCellChange(); });
+      const bAnd = document.getElementById("btnSetAndamento"); if (bAnd) bAnd.addEventListener("click", () => { modalSelectedStatus = 'ANDAMENTO'; saveModalCellChange(); });
+      const bReal = document.getElementById("btnSetRealizado"); if (bReal) bReal.addEventListener("click", () => { modalSelectedStatus = 'REALIZADO'; saveModalCellChange(); });
+      const bCinza = document.getElementById("btnSetCinza"); if (bCinza) bCinza.addEventListener("click", () => { modalSelectedStatus = 'CINZA'; saveModalCellChange(); });
+      const bSaveCell = document.getElementById("btnSaveCellModal"); if (bSaveCell) bSaveCell.addEventListener("click", saveModalCellChange);
 
       // NEW / EDIT COMPANY MODAL HANDLERS
-      document.getElementById("btnNewCompany").addEventListener("click", () => {
-        requireAuth(() => {
-          document.getElementById("companyModalTitle").innerText = "Cadastrar Nova Empresa";
-          document.getElementById("modalCompanyOriginalCode").value = "";
-          document.getElementById("modalInputCode").value = "";
-          document.getElementById("modalInputName").value = "";
-          document.getElementById("modalInputTax").value = "Simples Nacional Puro";
-          document.getElementById("modalInputColaborador").value = "";
-          document.getElementById("modalInputDtEntradaRbm").value = "";
-          document.getElementById("modalInputMesSaida").value = "-1";
-          document.getElementById("companyModal").style.display = "flex";
+      const bNewComp = document.getElementById("btnNewCompany");
+      if (bNewComp) {
+        bNewComp.addEventListener("click", () => {
+          requireAuth(() => {
+            const title = document.getElementById("companyModalTitle"); if (title) title.innerText = "Cadastrar Nova Empresa";
+            const origC = document.getElementById("modalCompanyOriginalCode"); if (origC) origC.value = "";
+            const inCode = document.getElementById("modalInputCode"); if (inCode) inCode.value = "";
+            const inName = document.getElementById("modalInputName"); if (inName) inName.value = "";
+            const inTax = document.getElementById("modalInputTax"); if (inTax) inTax.value = "Simples Nacional Puro";
+            const inColab = document.getElementById("modalInputColaborador"); if (inColab) inColab.value = "";
+            const inDt = document.getElementById("modalInputDtEntradaRbm"); if (inDt) inDt.value = "";
+            const inSaida = document.getElementById("modalInputMesSaida"); if (inSaida) inSaida.value = "-1";
+            const cMod = document.getElementById("companyModal"); if (cMod) cMod.style.display = "flex";
+          });
         });
-      });
+      }
 
-      document.getElementById("btnEditSelectedCompany").addEventListener("click", () => {
-        if (!currentSelectedCode) return;
-        requireAuth(() => {
-          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
-          if (!comp) return;
+      const bEditComp = document.getElementById("btnEditSelectedCompany");
+      if (bEditComp) {
+        bEditComp.addEventListener("click", () => {
+          if (!currentSelectedCode) return;
+          requireAuth(() => {
+            const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+            if (!comp) return;
 
-          document.getElementById("companyModalTitle").innerText = "Editar Empresa";
-          document.getElementById("modalCompanyOriginalCode").value = comp.code;
-          document.getElementById("modalInputCode").value = comp.code;
-          document.getElementById("modalInputName").value = comp.name;
-          document.getElementById("modalInputTax").value = comp.tax || "Simples Nacional Puro";
-          document.getElementById("modalInputTipo").value = comp.tipo || "Não informado";
-          document.getElementById("modalInputColaborador").value = comp.colaborador || "";
-          document.getElementById("modalInputDtEntradaRbm").value = comp.dtEntradaRbm || "";
-          document.getElementById("modalInputMesSaida").value = (comp.mesSaida !== undefined && comp.mesSaida !== null) ? comp.mesSaida : "-1";
-          document.getElementById("companyModal").style.display = "flex";
+            const title = document.getElementById("companyModalTitle"); if (title) title.innerText = "Editar Empresa";
+            const origC = document.getElementById("modalCompanyOriginalCode"); if (origC) origC.value = comp.code;
+            const inCode = document.getElementById("modalInputCode"); if (inCode) inCode.value = comp.code;
+            const inName = document.getElementById("modalInputName"); if (inName) inName.value = comp.name;
+            const inTax = document.getElementById("modalInputTax"); if (inTax) inTax.value = comp.tax || "Simples Nacional Puro";
+            const inTipo = document.getElementById("modalInputTipo"); if (inTipo) inTipo.value = comp.tipo || "Não informado";
+            const inColab = document.getElementById("modalInputColaborador"); if (inColab) inColab.value = comp.colaborador || "";
+            const inDt = document.getElementById("modalInputDtEntradaRbm"); if (inDt) inDt.value = comp.dtEntradaRbm || "";
+            const inSaida = document.getElementById("modalInputMesSaida"); if (inSaida) inSaida.value = (comp.mesSaida !== undefined && comp.mesSaida !== null) ? comp.mesSaida : "-1";
+            const cMod = document.getElementById("companyModal"); if (cMod) cMod.style.display = "flex";
+          });
         });
-      });
+      }
 
-      document.getElementById("btnCloseCompanyModal").addEventListener("click", () => {
-        document.getElementById("companyModal").style.display = "none";
-      });
-      document.getElementById("btnCancelCompanyModal").addEventListener("click", () => {
-        document.getElementById("companyModal").style.display = "none";
-      });
+      const closeCMod2 = document.getElementById("btnCloseCompanyModal"); if (closeCMod2) closeCMod2.addEventListener("click", () => { const m = document.getElementById("companyModal"); if (m) m.style.display = "none"; });
+      const cancelCMod2 = document.getElementById("btnCancelCompanyModal"); if (cancelCMod2) cancelCMod2.addEventListener("click", () => { const m = document.getElementById("companyModal"); if (m) m.style.display = "none"; });
 
-      document.getElementById("companyForm").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const origCode = document.getElementById("modalCompanyOriginalCode").value;
-        const newCode = document.getElementById("modalInputCode").value.trim();
-        const name = document.getElementById("modalInputName").value.trim();
-        const tax = document.getElementById("modalInputTax").value;
-        const tipo = document.getElementById("modalInputTipo").value;
-        const colab = document.getElementById("modalInputColaborador").value;
-        const dtEntradaRbm = document.getElementById("modalInputDtEntradaRbm").value.trim();
-        const mesSaida = parseInt(document.getElementById("modalInputMesSaida").value, 10);
+      const compForm = document.getElementById("companyForm");
+      if (compForm) {
+        compForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const origCode = document.getElementById("modalCompanyOriginalCode").value;
+          const newCode = document.getElementById("modalInputCode").value.trim();
+          const name = document.getElementById("modalInputName").value.trim();
+          const tax = document.getElementById("modalInputTax").value;
+          const tipo = document.getElementById("modalInputTipo").value;
+          const colab = document.getElementById("modalInputColaborador").value;
+          const dtEntradaRbm = document.getElementById("modalInputDtEntradaRbm").value.trim();
+          const mesSaida = parseInt(document.getElementById("modalInputMesSaida").value, 10);
 
-        if (origCode) {
-          const comp = companies.find(c => String(c.code) === String(origCode));
-          if (comp) {
-            comp.code = newCode;
-            comp.name = name;
-            comp.tax = tax;
-            comp.tipo = tipo;
-            comp.colaborador = colab;
-            comp.dtEntradaRbm = dtEntradaRbm;
-            comp.mesSaida = mesSaida;
-
-            if (origCode !== newCode && closingData[origCode]) {
-              closingData[newCode] = closingData[origCode];
-              delete closingData[origCode];
+          if (origCode) {
+            const comp = companies.find(c => String(c.code) === String(origCode));
+            if (comp) {
+              comp.code = newCode; comp.name = name; comp.tax = tax; comp.tipo = tipo; comp.colaborador = colab; comp.dtEntradaRbm = dtEntradaRbm; comp.mesSaida = mesSaida;
+              if (origCode !== newCode) { const oldK = normalizeCompanyKey(origCode); const newK = normalizeCompanyKey(newCode); if (closingData[oldK]) { closingData[newK] = closingData[oldK]; delete closingData[oldK]; } }
+              addHistoryEntry(newCode, name, "EMPRESA_EDITADA", `Editou dados cadastrais da empresa`);
             }
-            addHistoryEntry(newCode, name, "EMPRESA_EDITADA", `Editou dados cadastrais da empresa`);
+          } else {
+            if (companies.some(c => String(c.code) === String(newCode))) { alert("Atenção: Já existe uma empresa com esse CÓDIGO!"); return; }
+            companies.push({ code: newCode, name, tax, tipo, colaborador: colab, dtEntradaRbm, mesSaida });
+            addHistoryEntry(newCode, name, "EMPRESA_CRIADA", `Cadastrou nova empresa no sistema`);
           }
-        } else {
-          if (companies.some(c => String(c.code) === String(newCode))) {
-            alert("Atenção: Já existe uma empresa com esse CÓDIGO!");
-            return;
-          }
-          companies.push({ code: newCode, name, tax, tipo, colaborador: colab, dtEntradaRbm, mesSaida });
-          addHistoryEntry(newCode, name, "EMPRESA_CRIADA", `Cadastrou nova empresa no sistema`);
-        }
 
-        applyCompanyExitData(newCode, mesSaida);
-        saveStateToStorage();
-        renderCompanyList();
-        selectCompany(newCode);
-        document.getElementById("companyModal").style.display = "none";
-      });
+          applyCompanyExitData(newCode, mesSaida);
+          saveStateToStorage();
+          renderCompanyList();
+          selectCompany(newCode);
+          const cMod = document.getElementById("companyModal"); if (cMod) cMod.style.display = "none";
+        });
+      }
 
       // HISTORY MODAL HANDLERS
       const btnHistory = document.getElementById("btnOpenHistory");
       if (btnHistory) {
         btnHistory.addEventListener("click", () => {
           renderHistoryModal();
-          document.getElementById("historyModal").classList.remove("hidden");
-          document.getElementById("historyModal").classList.add("flex");
+          const m = document.getElementById("historyModal"); if (m) { m.classList.remove("hidden"); m.classList.add("flex"); }
         });
       }
 
@@ -1263,30 +2079,17 @@
       if (btnViewCompHist) {
         btnViewCompHist.addEventListener("click", () => {
           const searchInput = document.getElementById("historySearchInput");
-          if (searchInput && currentSelectedCode) {
-            searchInput.value = String(currentSelectedCode);
-          }
+          if (searchInput && currentSelectedCode) searchInput.value = String(currentSelectedCode);
           renderHistoryModal();
-          document.getElementById("historyModal").classList.remove("hidden");
-          document.getElementById("historyModal").classList.add("flex");
+          const m = document.getElementById("historyModal"); if (m) { m.classList.remove("hidden"); m.classList.add("flex"); }
         });
       }
 
       const btnCloseHist = document.getElementById("btnCloseHistoryModal");
-      if (btnCloseHist) {
-        btnCloseHist.addEventListener("click", () => {
-          document.getElementById("historyModal").classList.add("hidden");
-          document.getElementById("historyModal").classList.remove("flex");
-        });
-      }
+      if (btnCloseHist) btnCloseHist.addEventListener("click", () => { const m = document.getElementById("historyModal"); if (m) { m.classList.add("hidden"); m.classList.remove("flex"); } });
 
       const btnOKHist = document.getElementById("btnOKHistoryModal");
-      if (btnOKHist) {
-        btnOKHist.addEventListener("click", () => {
-          document.getElementById("historyModal").classList.add("hidden");
-          document.getElementById("historyModal").classList.remove("flex");
-        });
-      }
+      if (btnOKHist) btnOKHist.addEventListener("click", () => { const m = document.getElementById("historyModal"); if (m) { m.classList.add("hidden"); m.classList.remove("flex"); } });
 
       const histSearchInp = document.getElementById("historySearchInput");
       if (histSearchInp) histSearchInp.addEventListener("input", renderHistoryModal);
@@ -1318,168 +2121,149 @@
       }
 
       // DELETE COMPANY
-      document.getElementById("btnDeleteSelectedCompany").addEventListener("click", () => {
-        if (!currentSelectedCode) return;
-        requireAuth(() => {
-          const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
-          if (!comp) return;
+      const btnDel = document.getElementById("btnDeleteSelectedCompany");
+      if (btnDel) {
+        btnDel.addEventListener("click", () => {
+          if (!currentSelectedCode) return;
+          requireAuth(() => {
+            const comp = companies.find(c => String(c.code) === String(currentSelectedCode));
+            if (!comp) return;
 
-          if (confirm(`Tem certeza que deseja excluir a empresa "${comp.name}" (CÓD: ${comp.code})?`)) {
-            const compCode = comp.code;
-            const compName = comp.name;
-            companies = companies.filter(c => String(c.code) !== String(currentSelectedCode));
-            delete closingData[currentSelectedCode];
-            addHistoryEntry(compCode, compName, "EMPRESA_EXCLUIDA", `Excluiu a empresa do sistema`);
-            saveStateToStorage();
-            
-            if (companies.length > 0) {
-              selectCompany(companies[0].code);
+            if (confirm(`Tem certeza que deseja excluir a empresa "${comp.name}" (CÓD: ${comp.code})?`)) {
+              const compCode = comp.code;
+              const compName = comp.name;
+              companies = companies.filter(c => String(c.code) !== String(currentSelectedCode));
+              delete closingData[normalizeCompanyKey(currentSelectedCode)];
+              addHistoryEntry(compCode, compName, "EMPRESA_EXCLUIDA", `Excluiu a empresa do sistema`);
+              saveStateToStorage();
+              
+              if (companies.length > 0) selectCompany(companies[0].code);
+              else { currentSelectedCode = null; renderCompanyList(); renderRoutineTable(); }
+            }
+          });
+        });
+      }
+
+      const btnEditT = document.getElementById("btnEditTasksModal"); if (btnEditT) btnEditT.addEventListener("click", () => { requireAuth(() => { renderTasksModalList(); const m = document.getElementById("tasksModal"); if (m) m.style.display = "flex"; }); });
+      const btnCloseT = document.getElementById("btnCloseTasksModal"); if (btnCloseT) btnCloseT.addEventListener("click", () => { const m = document.getElementById("tasksModal"); if (m) m.style.display = "none"; });
+      const btnCancelT = document.getElementById("btnCancelTasksModal"); if (btnCancelT) btnCancelT.addEventListener("click", () => { const m = document.getElementById("tasksModal"); if (m) m.style.display = "none"; });
+      const btnResetT = document.getElementById("btnResetTasks"); if (btnResetT) btnResetT.addEventListener("click", () => { if (confirm("Deseja restaurar a lista padrão informal de escritório para as 21 tarefas contábeis?")) { closingTasks = [...DEFAULT_CLOSING_TASKS]; saveStateToStorage(); renderRoutineTable(); const m = document.getElementById("tasksModal"); if (m) m.style.display = "none"; } });
+      const btnSaveT = document.getElementById("btnSaveTasksModal"); if (btnSaveT) btnSaveT.addEventListener("click", () => { const inputs = document.querySelectorAll(".task-name-input"); inputs.forEach(inp => { const idx = parseInt(inp.dataset.taskIndex, 10); const val = inp.value.trim(); if (val) closingTasks[idx] = val; }); saveStateToStorage(); renderRoutineTable(); const m = document.getElementById("tasksModal"); if (m) m.style.display = "none"; });
+
+      // IMPORT / EXPORT BACKUP
+      const btnExportD = document.getElementById("btnExportData");
+      if (btnExportD) {
+        btnExportD.addEventListener("click", () => {
+          const payload = { companies, closingData, closingTasks, exportDate: new Date().toISOString() };
+          const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `Backup_Fechamento_Contabil_RBM_${getCurrentShortDate().replace('/','-')}.json`;
+          a.click();
+        });
+      }
+
+      const btnImportD = document.getElementById("btnImportData");
+      if (btnImportD) {
+        btnImportD.addEventListener("click", () => {
+          requireAuth(() => {
+            const inp = document.getElementById("importFileInput"); if (inp) inp.click();
+          });
+        });
+      }
+
+      const inpFile = document.getElementById("importFileInput");
+      if (inpFile) {
+        inpFile.addEventListener("change", (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            try {
+              const data = JSON.parse(event.target.result);
+              if (data.companies && data.closingData) {
+                companies = data.companies;
+                closingData = data.closingData;
+                if (data.closingTasks) closingTasks = data.closingTasks;
+                saveStateToStorage();
+                renderCompanyList();
+                if (companies.length > 0) selectCompany(companies[0].code);
+                alert("Backup importado com sucesso!");
+              } else { alert("Arquivo de backup inválido."); }
+            } catch(err) { alert("Erro ao ler o arquivo JSON."); }
+          };
+          reader.readAsText(file);
+        });
+      }
+
+      // PASSWORD PROTECTION HANDLERS
+      const pwdForm = document.getElementById("passwordForm");
+      if (pwdForm) {
+        pwdForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const modalUserSel = document.getElementById("modalAuthUserSelect");
+          const selectedUser = modalUserSel ? modalUserSel.value : activeUser;
+          const pwdInp = document.getElementById("inputAuthPassword");
+          const pwd = (pwdInp ? pwdInp.value : "").trim();
+          const errorMsg = document.getElementById("passwordErrorMsg");
+
+          if (validateUserPassword(selectedUser, pwd)) {
+            activeUser = selectedUser;
+            localStorage.setItem("rbm_closing_active_user", activeUser);
+            const userSel = document.getElementById("activeUserSelect");
+            if (userSel) userSel.value = activeUser;
+            sessionStorage.setItem("rbm_closing_auth", "true");
+            closePasswordModal();
+            if (pwdInp) { pwdInp.classList.remove("border-rose-500", "bg-rose-50"); pwdInp.value = ""; }
+            if (pendingAuthAction) {
+              const act = pendingAuthAction;
+              pendingAuthAction = null;
+              act();
+            }
+          } else {
+            if (errorMsg) errorMsg.classList.remove("hidden");
+            if (pwdInp) { pwdInp.classList.add("border-rose-500", "bg-rose-50"); pwdInp.focus(); }
+          }
+        });
+      }
+
+      const btnClosePwd = document.getElementById("btnClosePasswordModal"); if (btnClosePwd) btnClosePwd.addEventListener("click", closePasswordModal);
+      const btnCancelPwd = document.getElementById("btnCancelPasswordModal"); if (btnCancelPwd) btnCancelPwd.addEventListener("click", closePasswordModal);
+
+      const btnToggleP = document.getElementById("btnTogglePasswordVisibility");
+      if (btnToggleP) {
+        btnToggleP.addEventListener("click", () => {
+          const pwdInp = document.getElementById("inputAuthPassword");
+          const eyeIcon = document.getElementById("eyeIcon");
+          if (pwdInp && eyeIcon) {
+            if (pwdInp.type === "password") {
+              pwdInp.type = "text"; eyeIcon.classList.remove("fa-eye"); eyeIcon.classList.add("fa-eye-slash");
             } else {
-              currentSelectedCode = null;
-              renderCompanyList();
-              renderRoutineTable();
+              pwdInp.type = "password"; eyeIcon.classList.remove("fa-eye-slash"); eyeIcon.classList.add("fa-eye");
             }
           }
         });
-      });
+      }
 
-      document.getElementById("btnEditTasksModal").addEventListener("click", () => {
-        requireAuth(() => {
-          renderTasksModalList();
-          document.getElementById("tasksModal").style.display = "flex";
+      const btnLock = document.getElementById("btnLockApp");
+      if (btnLock) {
+        btnLock.addEventListener("click", () => {
+          sessionStorage.removeItem("rbm_closing_auth");
+          alert("Sua sessão de edição foi bloqueada. Para fazer alterações, digite a senha do usuário.");
         });
-      });
-      document.getElementById("btnCloseTasksModal").addEventListener("click", () => {
-        document.getElementById("tasksModal").style.display = "none";
-      });
-      document.getElementById("btnCancelTasksModal").addEventListener("click", () => {
-        document.getElementById("tasksModal").style.display = "none";
-      });
-      document.getElementById("btnResetTasks").addEventListener("click", () => {
-        if (confirm("Deseja restaurar a lista padrão informal de escritório para as 21 tarefas contábeis?")) {
-          closingTasks = [...DEFAULT_CLOSING_TASKS];
-          saveStateToStorage();
-          renderRoutineTable();
-          document.getElementById("tasksModal").style.display = "none";
-        }
-      });
-      document.getElementById("btnSaveTasksModal").addEventListener("click", () => {
-        const inputs = document.querySelectorAll(".task-name-input");
-        inputs.forEach(inp => {
-          const idx = parseInt(inp.dataset.taskIndex, 10);
-          const val = inp.value.trim();
-          if (val) closingTasks[idx] = val;
-        });
-        saveStateToStorage();
-        renderRoutineTable();
-        document.getElementById("tasksModal").style.display = "none";
-      });
-
-      // IMPORT / EXPORT BACKUP
-      document.getElementById("btnExportData").addEventListener("click", () => {
-        const payload = { companies, closingData, closingTasks, exportDate: new Date().toISOString() };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `Backup_Fechamento_Contabil_RBM_${getCurrentShortDate().replace('/','-')}.json`;
-        a.click();
-      });
-
-      document.getElementById("btnImportData").addEventListener("click", () => {
-        requireAuth(() => {
-          document.getElementById("importFileInput").click();
-        });
-      });
-
-      document.getElementById("importFileInput").addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const data = JSON.parse(event.target.result);
-            if (data.companies && data.closingData) {
-              companies = data.companies;
-              closingData = data.closingData;
-              if (data.closingTasks) closingTasks = data.closingTasks;
-              saveStateToStorage();
-              renderCompanyList();
-              if (companies.length > 0) selectCompany(companies[0].code);
-              alert("Backup importado com sucesso!");
-            } else { alert("Arquivo de backup inválido."); }
-          } catch(err) { alert("Erro ao ler o arquivo JSON."); }
-        };
-        reader.readAsText(file);
-      });
-
-      // PASSWORD PROTECTION HANDLERS
-      document.getElementById("passwordForm").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const pwdInp = document.getElementById("inputAuthPassword");
-        const pwd = (pwdInp.value || "").trim().toLowerCase();
-        const errorMsg = document.getElementById("passwordErrorMsg");
-
-        if (pwd === "rbmcontabil" || pwd === "rbm" || pwd === "1234" || pwd === "admin" || pwd.length > 0) {
-          sessionStorage.setItem("rbm_closing_auth", "true");
-          closePasswordModal();
-          pwdInp.classList.remove("border-rose-500", "bg-rose-50");
-          pwdInp.value = "";
-          if (pendingAuthAction) {
-            const act = pendingAuthAction;
-            pendingAuthAction = null;
-            act();
-          }
-        } else {
-          errorMsg.classList.remove("hidden");
-          pwdInp.classList.add("border-rose-500", "bg-rose-50");
-          pwdInp.focus();
-        }
-      });
-
-      const btnClosePwd = document.getElementById("btnClosePasswordModal");
-      if (btnClosePwd) btnClosePwd.addEventListener("click", closePasswordModal);
-      const btnCancelPwd = document.getElementById("btnCancelPasswordModal");
-      if (btnCancelPwd) btnCancelPwd.addEventListener("click", closePasswordModal);
-
-      document.getElementById("btnTogglePasswordVisibility").addEventListener("click", () => {
-        const pwdInp = document.getElementById("inputAuthPassword");
-        const eyeIcon = document.getElementById("eyeIcon");
-        if (pwdInp.type === "password") {
-          pwdInp.type = "text";
-          eyeIcon.classList.remove("fa-eye");
-          eyeIcon.classList.add("fa-eye-slash");
-        } else {
-          pwdInp.type = "password";
-          eyeIcon.classList.remove("fa-eye-slash");
-          eyeIcon.classList.add("fa-eye");
-        }
-      });
-
-      document.getElementById("btnLockApp").addEventListener("click", () => {
-        sessionStorage.removeItem("rbm_closing_auth");
-        alert("Sua sessão de edição foi bloqueada. Apenas visualização disponível.");
-      });
+      }
 
       // SECURITY MODAL HANDLERS
-      document.getElementById("btnOpenSecurity").addEventListener("click", () => {
-        document.getElementById("securityModal").classList.remove("hidden");
-      });
-      document.getElementById("btnCloseSecurityModal").addEventListener("click", () => {
-        document.getElementById("securityModal").classList.add("hidden");
-      });
-      document.getElementById("btnOKSecurityModal").addEventListener("click", () => {
-        document.getElementById("securityModal").classList.add("hidden");
-      });
-      document.getElementById("btnDownloadBackupModal").addEventListener("click", () => {
-        document.getElementById("securityModal").classList.add("hidden");
-        document.getElementById("btnExportData").click();
-      });
+      const btnOpenSec = document.getElementById("btnOpenSecurity"); if (btnOpenSec) btnOpenSec.addEventListener("click", () => { const m = document.getElementById("securityModal"); if (m) m.classList.remove("hidden"); });
+      const btnCloseSec = document.getElementById("btnCloseSecurityModal"); if (btnCloseSec) btnCloseSec.addEventListener("click", () => { const m = document.getElementById("securityModal"); if (m) m.classList.add("hidden"); });
+      const btnOKSec = document.getElementById("btnOKSecurityModal"); if (btnOKSec) btnOKSec.addEventListener("click", () => { const m = document.getElementById("securityModal"); if (m) m.classList.add("hidden"); });
+      const btnDlBackup = document.getElementById("btnDownloadBackupModal"); if (btnDlBackup) btnDlBackup.addEventListener("click", () => { const m = document.getElementById("securityModal"); if (m) m.classList.add("hidden"); const b = document.getElementById("btnExportData"); if (b) b.click(); });
     }
 
     function selectFromDropdown(code) {
-      document.getElementById("searchDropdown").classList.add("hidden");
-      document.getElementById("topSearchInput").value = "";
+      const drop = document.getElementById("searchDropdown"); if (drop) drop.classList.add("hidden");
+      const topS = document.getElementById("topSearchInput"); if (topS) topS.value = "";
       selectCompany(code);
     }
 
@@ -1492,29 +2276,131 @@
 
     // INITIALIZATION ON DOM READY
     document.addEventListener("DOMContentLoaded", () => {
-      checkAuthStatus();
-      initCloudSync();
       loadStateFromStorage();
-      setupEventListeners();
+      resetCompanyFilters();
       renderCompanyList();
+      if (companies.length > 0) selectCompany(companies[0].code);
       
+      try { setupEventListeners(); } catch(e) { console.error("Error setting listeners:", e); }
+      try { checkAuthStatus(); } catch(e) { console.error("Error checking auth:", e); }
+      try { initCloudSync(); } catch(e) { console.error("Error initializing cloud sync:", e); }
+
       const userSel = document.getElementById("activeUserSelect");
       if (userSel) {
+        if (!USER_PASSWORDS[activeUser]) activeUser = "Viviancontabil";
         userSel.value = activeUser;
         userSel.addEventListener("change", (e) => {
-          activeUser = e.target.value;
-          localStorage.setItem("rbm_closing_active_user", activeUser);
+          const newUser = e.target.value;
+          sessionStorage.removeItem("rbm_closing_auth");
+          const modalUserSel = document.getElementById("modalAuthUserSelect");
+          if (modalUserSel) modalUserSel.value = newUser;
+          requireAuth(() => {
+            activeUser = newUser;
+            localStorage.setItem("rbm_closing_active_user", activeUser);
+          });
         });
       }
 
-      if (companies.length > 0) selectCompany(companies[0].code);
-      
       updateSelectedCompanyStats();
       updateLastCompanyActionDisplay();
-      renderHistoryBadge();
     });
+</script>
 
-  </script>
+  <!-- USER AUTH / LOCK MODAL -->
+  <div id="passwordLockOverlay" style="display: none;" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+      
+      <div class="bg-brand-700 text-white p-4 flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <i class="fa-solid fa-user-shield text-amber-300"></i>
+          Acesso e Login de Usuário RBM
+        </h3>
+        <button id="btnClosePasswordModal" class="text-slate-300 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <form id="passwordForm" class="p-5 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Selecione o Usuário:</label>
+          <select id="modalAuthUserSelect" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs font-extrabold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none" style="color: #0f172a !important; background-color: #ffffff !important;">
+            <option value="Líliancontabil" class="text-slate-900 bg-white font-bold" style="color: #0f172a !important; background-color: #ffffff !important;">👤 Líliancontabil</option>
+            <option value="Luzietecontabil" class="text-slate-900 bg-white font-bold" style="color: #0f172a !important; background-color: #ffffff !important;">👤 Luzietecontabil</option>
+            <option value="Vivianecontabil" class="text-slate-900 bg-white font-bold" style="color: #0f172a !important; background-color: #ffffff !important;">👤 Vivianecontabil</option>
+            <option value="Aureacontabil" class="text-slate-900 bg-white font-bold" style="color: #0f172a !important; background-color: #ffffff !important;">👤 Aureacontabil</option>
+            <option value="Viviancontabil" class="text-slate-900 bg-white font-bold" style="color: #0f172a !important; background-color: #ffffff !important;">👤 Viviancontabil</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Digite a Senha do Usuário:</label>
+          <div class="relative">
+            <input type="password" id="inputAuthPassword" required placeholder="Digite a senha..."
+              class="w-full p-2.5 pr-10 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <button type="button" id="btnTogglePasswordVisibility" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600">
+              <i id="eyeIcon" class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <p id="passwordErrorMsg" class="hidden text-[11px] text-rose-600 font-bold mt-1.5 flex items-center gap-1">
+            <i class="fa-solid fa-circle-xmark"></i>
+            Senha incorreta para este usuário. Tente novamente!
+          </p>
+        </div>
+
+        <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 text-[11px] text-blue-900 space-y-1">
+          <p class="font-bold flex items-center gap-1">
+            <i class="fa-solid fa-key text-blue-600"></i>
+            Exemplo de Senhas por Usuário:
+          </p>
+          <ul class="list-disc list-inside space-y-0.5 text-[10.5px] text-blue-800 font-medium">
+            
+            <li><strong>Líliancontabil</strong>: <code class="bg-white px-1 rounded">liliancontabil</code> ou <code class="bg-white px-1 rounded">lilian123</code></li>
+            <li><strong>Luzietecontabil</strong>: <code class="bg-white px-1 rounded">luzietecontabil</code> ou <code class="bg-white px-1 rounded">luziete123</code></li>
+            <li><strong>Vivianecontabil</strong>: <code class="bg-white px-1 rounded">vivianecontabil</code> ou <code class="bg-white px-1 rounded">viviane123</code></li>
+            <li><strong>Aureacontabil</strong>: <code class="bg-white px-1 rounded">aureacontabil</code> ou <code class="bg-white px-1 rounded">aurea123</code></li>
+            <li><strong>Viviancontabil</strong>: <code class="bg-white px-1 rounded">viviancontabil</code> ou <code class="bg-white px-1 rounded">vivian123</code></li>
+          </ul>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-200">
+          <button type="button" id="btnCancelPasswordModal" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+          <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow">Entrar / Confirmar</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- HISTORY AUDIT LOG MODAL -->
+  <div id="historyModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="bg-brand-700 text-white p-4 flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-amber-300"></i>
+          Histórico Completo de Alterações RBM
+        </h3>
+        <button id="btnCloseHistoryModal" class="text-slate-300 hover:text-white text-xl">&times;</button>
+      </div>
+      <div class="p-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-3">
+        <div class="relative flex-1">
+          <input type="text" id="historySearchInput" placeholder="Buscar por usuário, código, empresa ou alteração..." 
+            class="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 text-xs rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400 text-xs"></i>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnExportHistory" class="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-lg text-xs transition flex items-center gap-1">
+            <i class="fa-solid fa-download text-blue-600"></i> Exportar
+          </button>
+          <button id="btnClearHistory" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-lg text-xs transition flex items-center gap-1">
+            <i class="fa-solid fa-trash-can"></i> Limpar
+          </button>
+        </div>
+      </div>
+      <div id="historyListContainer" class="p-4 flex-1 overflow-y-auto space-y-2"></div>
+      <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button id="btnOKHistoryModal" class="px-5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs shadow transition">Fechar</button>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="importFileInput" class="hidden" accept=".json">
 
 </body>
 </html>

@@ -1182,7 +1182,7 @@
         loaded = null;
       }
 
-      if (!loaded || !Array.isArray(loaded) || loaded.length < 10) {
+      if (!loaded || !Array.isArray(loaded) || loaded.length < 144) {
         loaded = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
       }
 
@@ -1268,12 +1268,17 @@
       const statusSaidaFilterEl = document.getElementById("filterStatusSaida");
       const statusSaidaFilter = statusSaidaFilterEl ? statusSaidaFilterEl.value : "";
 
-      if (!Array.isArray(companies) || companies.length === 0) {
+      if (!Array.isArray(companies) || companies.length < 144) {
         companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
       }
-      companies = companies.filter(c => c && typeof c === 'object' && c.code);
-      if (companies.length === 0) {
-        companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
+      companies = companies.filter(c => c && typeof c === 'object' && c.code && c.name);
+      if (companies.length < 144) {
+        const existingCodes = new Set(companies.map(c => String(c.code)));
+        INITIAL_COMPANIES.forEach(initC => {
+          if (!existingCodes.has(String(initC.code))) {
+            companies.push(JSON.parse(JSON.stringify(initC)));
+          }
+        });
       }
 
       const filtered = companies.filter(c => {
@@ -1308,30 +1313,18 @@
       if (filtStat) filtStat.innerText = filtered.length;
 
       if (filtered.length === 0) {
-        if (companies.length > 0) {
-          listContainer.innerHTML = `
-            <div class="p-4 m-2 text-center bg-blue-50/90 rounded-xl border border-blue-200 space-y-3 shadow-xs">
-              <i class="fa-solid fa-filter text-3xl text-blue-500"></i>
-              <div>
-                <h4 class="font-extrabold text-blue-950 text-xs">Filtro Ativo na Busca!</h4>
-                <p class="text-[11px] text-blue-800 mt-1">Todas as <strong>${companies.length} empresas</strong> continuam gravadas no sistema, mas foram ocultadas pelos filtros selecionados.</p>
-              </div>
-              <button onclick="resetCompanyFilters()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-lg text-xs transition shadow-md flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-rotate-left"></i>
-                <span>MOSTRAR TODAS AS ${companies.length} EMPRESAS</span>
-              </button>
-            </div>`;
-        } else {
-          listContainer.innerHTML = `
-            <div class="p-4 m-2 text-center bg-amber-50 rounded-xl border border-amber-200 space-y-3 shadow-xs">
-              <i class="fa-solid fa-triangle-exclamation text-3xl text-amber-500"></i>
-              <p class="font-bold text-amber-900 text-xs">Nenhuma empresa carregada.</p>
-              <button onclick="restoreInitialCompanies()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-lg text-xs transition shadow-md flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-cloud-arrow-down"></i>
-                <span>RESTAURAR 144 EMPRESAS DA RBM</span>
-              </button>
-            </div>`;
-        }
+        listContainer.innerHTML = `
+          <div class="p-4 m-2 text-center bg-blue-50/90 rounded-xl border border-blue-200 space-y-3 shadow-xs">
+            <i class="fa-solid fa-filter text-3xl text-blue-500"></i>
+            <div>
+              <h4 class="font-extrabold text-blue-950 text-xs">Filtro Ativo na Busca!</h4>
+              <p class="text-[11px] text-blue-800 mt-1">Todas as <strong>${companies.length} empresas</strong> continuam gravadas no sistema, mas foram ocultadas pelos filtros selecionados.</p>
+            </div>
+            <button onclick="resetCompanyFilters()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-lg text-xs transition shadow-md flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-rotate-left"></i>
+              <span>MOSTRAR TODAS AS ${companies.length} EMPRESAS</span>
+            </button>
+          </div>`;
         return;
       }
 
@@ -1415,7 +1408,7 @@
 
             if (cloudCompaniesArray && cloudCompaniesArray.length > 0) {
               isRemoteUpdate = true;
-              companies = cloudCompaniesArray;
+              companies = cloudCompaniesArray.filter(c => c && typeof c === 'object' && c.code && c.name);
 
               const existingCodes = new Set(companies.map(c => String(c.code)));
               INITIAL_COMPANIES.forEach(initC => {
@@ -1465,7 +1458,7 @@
               updateCloudStatusBadge('synced');
               isRemoteUpdate = false;
             } else {
-              if (!companies || !Array.isArray(companies) || companies.length === 0) {
+              if (!companies || !Array.isArray(companies) || companies.length < 144) {
                 companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
               }
               renderCompanyList();
@@ -1474,7 +1467,7 @@
               syncToCloud();
             }
           } catch(err) {
-            if (!companies || !Array.isArray(companies) || companies.length === 0) {
+            if (!companies || !Array.isArray(companies) || companies.length < 144) {
               companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
             }
             renderCompanyList();
@@ -1482,7 +1475,7 @@
             updateCloudStatusBadge('error', 'Erro ao ler dados da nuvem');
           }
         }, err => {
-          if (!companies || !Array.isArray(companies) || companies.length === 0) {
+          if (!companies || !Array.isArray(companies) || companies.length < 144) {
             companies = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
           }
           renderCompanyList();
@@ -1495,6 +1488,15 @@
     }
 
     function syncToCloud() {
+      if (companies.length < 144) {
+        const existingCodes = new Set(companies.map(c => String(c.code)));
+        INITIAL_COMPANIES.forEach(initC => {
+          if (!existingCodes.has(String(initC.code))) {
+            companies.push(JSON.parse(JSON.stringify(initC)));
+          }
+        });
+      }
+
       if (cloudDb && typeof cloudDb.ref === 'function' && !isRemoteUpdate) {
         try {
           updateCloudStatusBadge('syncing');

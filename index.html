@@ -155,6 +155,12 @@
           </select>
         </div>
 
+        <!-- PROMINENT CADASTRAR NOVA EMPRESA BUTTON IN TOP HEADER -->
+        <button id="btnNewCompany" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-lg shadow-md flex items-center gap-1.5 transition no-print border border-blue-400 cursor-pointer hover:scale-[1.02] transform" title="Cadastrar Nova Empresa no Escritório">
+          <i class="fa-solid fa-plus-circle text-white text-sm"></i>
+          <span>➕ Cadastrar Nova Empresa</span>
+        </button>
+
         <!-- PROMINENT RELATÓRIO DE CONCLUSÃO BUTTON IN TOP HEADER -->
         <button id="btnOpenReportModalHeader" onclick="openReportModal()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-lg shadow-md flex items-center gap-1.5 transition no-print border border-emerald-400 cursor-pointer hover:scale-[1.02] transform" title="Abrir Relatório Geral de Fechamento Contábil">
           <i class="fa-solid fa-chart-pie text-white text-sm"></i>
@@ -217,6 +223,12 @@
             <span id="companyCountBadge" class="text-xs bg-slate-200 text-slate-700 font-semibold px-2 py-0.5 rounded-full">0</span>
           </div>
         </div>
+
+        <!-- CADASTRAR NOVA EMPRESA BUTTON IN SIDEBAR -->
+        <button onclick="document.getElementById('btnNewCompany')?.click()" class="w-full py-2 px-3 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-lg shadow flex items-center justify-center gap-2 transition cursor-pointer hover:scale-[1.01] transform border border-brand-500 mb-2" title="Cadastrar Nova Empresa no Escritório">
+          <i class="fa-solid fa-plus-circle text-sm"></i>
+          <span>➕ Cadastrar Nova Empresa</span>
+        </button>
 
         <!-- SEARCH FILTER -->
         <div class="relative">

@@ -1367,28 +1367,16 @@
         return;
       }
 
-      const statSel = document.getElementById("statMonthSelect");
-      const currentMonthIndex = (statSel && statSel.value !== "" && !isNaN(parseInt(statSel.value, 10))) ? parseInt(statSel.value, 10) : 0;
-
       listContainer.innerHTML = filtered.map(c => {
         const codeStr = String(c.code);
         const isSelected = codeStr === String(currentSelectedCode);
         const compMesSaida = c.mesSaida !== undefined && c.mesSaida !== null ? parseInt(c.mesSaida, 10) : -1;
         const isExited = compMesSaida >= 0;
 
-        // Check 100% completion status for the company for current exercise & month
-        const yearData = getCompanyYearData(codeStr, currentYear);
-        let doneTasks = 0;
-        const totalTasks = closingTasks.length;
-
-        closingTasks.forEach((_, taskIdx) => {
-          const cell = (yearData.tasks && yearData.tasks[taskIdx] && yearData.tasks[taskIdx][currentMonthIndex]) || { status: 'DASH' };
-          if (cell.status === 'REALIZADO' || cell.status === 'CONCLUIDO' || cell.status === 'OBSERVACAO' || cell.status === 'OBS' || cell.status === 'CINZA') {
-            doneTasks++;
-          }
-        });
-
-        const isFullyDone = (doneTasks === totalTasks);
+        const stats = getCompanyCompletionStats(codeStr, currentYear);
+        const doneTasks = stats.doneCount;
+        const totalTasks = stats.totalCells;
+        const isFullyDone = stats.isFullyDone;
 
         const colabDisplay = c.colaborador ? `<span class="${isFullyDone ? 'text-emerald-800 font-extrabold' : 'text-blue-700 font-bold'}">${c.colaborador}</span>` : '<span class="text-amber-600 font-semibold bg-amber-50 px-1 rounded border border-amber-200">Pendente Atribuição</span>';
 
@@ -1672,6 +1660,47 @@
       return closingData[cKey][year];
     }
 
+    function getCompanyCompletionStats(code, year = currentYear) {
+      const codeStr = String(code);
+      const comp = Array.isArray(companies) ? companies.find(c => String(c.code) === codeStr) : null;
+      const compMesSaida = (comp && comp.mesSaida !== undefined && comp.mesSaida !== null) ? parseInt(comp.mesSaida, 10) : -1;
+      const activeMonthsCount = compMesSaida >= 0 ? (compMesSaida + 1) : 12;
+
+      const yearData = getCompanyYearData(codeStr, year);
+      let doneCount = 0;
+      let andamentoCount = 0;
+      let pendingCount = 0;
+      const totalTasks = closingTasks.length;
+      const totalCells = totalTasks * activeMonthsCount;
+
+      closingTasks.forEach((_, taskIdx) => {
+        for (let m = 0; m < activeMonthsCount; m++) {
+          const cell = (yearData.tasks && yearData.tasks[taskIdx] && yearData.tasks[taskIdx][m]) || { status: 'DASH' };
+          if (cell.status === 'REALIZADO' || cell.status === 'CONCLUIDO' || cell.status === 'OBSERVACAO' || cell.status === 'OBS' || cell.status === 'CINZA') {
+            doneCount++;
+          } else if (cell.status === 'ANDAMENTO' || cell.status === 'EM_ANDAMENTO') {
+            andamentoCount++;
+          } else {
+            pendingCount++;
+          }
+        }
+      });
+
+      const pct = totalCells > 0 ? Math.round((doneCount / totalCells) * 100) : 0;
+      const isFullyDone = (totalCells > 0 && doneCount === totalCells);
+
+      return {
+        doneCount,
+        andamentoCount,
+        pendingCount,
+        totalCells,
+        activeMonthsCount,
+        pct,
+        isFullyDone
+      };
+    }
+
+
     function getShortTaxName(tax) {
       if (tax === "Simples Nacional Puro") return "SN Puro";
       if (tax === "Simples Nacional Híbrido") return "SN Híbrido";
@@ -1841,6 +1870,82 @@
       closeBatchModal();
     }
 
+    
+    const REPORT_MONTH_SHORT_NAMES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+
+    function renderReportMonthCheckboxes() {
+      const grid = document.getElementById("reportMonthsCheckboxesGrid");
+      if (!grid) return;
+      if (grid.children.length > 0) return; // already rendered
+
+      let html = "";
+      REPORT_MONTH_SHORT_NAMES.forEach((mName, idx) => {
+        html += `
+          <label class="flex items-center justify-center gap-1 p-1 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded cursor-pointer transition select-none font-bold text-[10px] text-slate-700">
+            <input type="checkbox" value="${idx}" class="report-month-checkbox w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" onchange="onReportMonthCheckboxChange()">
+            <span>${mName}</span>
+          </label>`;
+      });
+      grid.innerHTML = html;
+    }
+
+    
+    function getSelectedReportMonths() {
+      const checkboxes = document.querySelectorAll('.report-month-checkbox:checked');
+      if (checkboxes.length > 0) {
+        return Array.from(checkboxes).map(cb => parseInt(cb.value, 10)).sort((a, b) => a - b);
+      }
+      return [0,1,2,3,4,5,6,7,8,9,10,11];
+    }
+
+    function setReportMonthsPreset(presetKey) {
+      let targetMonths = [];
+      if (presetKey === "ALL") targetMonths = [0,1,2,3,4,5,6,7,8,9,10,11];
+      else if (presetKey === "S1") targetMonths = [0,1,2,3,4,5];
+      else if (presetKey === "S2") targetMonths = [6,7,8,9,10,11];
+      else if (presetKey === "Q1") targetMonths = [0,1,2];
+      else if (presetKey === "Q2") targetMonths = [3,4,5];
+      else if (presetKey === "Q3") targetMonths = [6,7,8];
+      else if (presetKey === "Q4") targetMonths = [9,10,11];
+      else {
+        const parsed = parseInt(presetKey, 10);
+        targetMonths = !isNaN(parsed) ? [parsed] : [0,1,2,3,4,5,6,7,8,9,10,11];
+      }
+
+      document.querySelectorAll('.report-month-checkbox').forEach(cb => {
+        cb.checked = targetMonths.includes(parseInt(cb.value, 10));
+      });
+
+      const monthSel = document.getElementById("reportMonthSelect");
+      if (monthSel) monthSel.value = presetKey;
+
+      renderReportModal();
+    }
+
+    function clearReportMonths() {
+      document.querySelectorAll('.report-month-checkbox').forEach(cb => cb.checked = false);
+      const monthSel = document.getElementById("reportMonthSelect");
+      if (monthSel) monthSel.value = "CUSTOM";
+      renderReportModal();
+    }
+
+    function syncReportMonthPreset() {
+      const monthSel = document.getElementById("reportMonthSelect");
+      const val = monthSel ? monthSel.value : "ALL";
+      if (val !== "CUSTOM") {
+        setReportMonthsPreset(val);
+      } else {
+        renderReportModal();
+      }
+    }
+
+    function onReportMonthCheckboxChange() {
+      const monthSel = document.getElementById("reportMonthSelect");
+      if (monthSel) monthSel.value = "CUSTOM";
+      renderReportModal();
+    }
+
+
     function openReportModal() {
       const yearInp = document.getElementById("reportYearInput");
       if (yearInp) yearInp.value = currentYear;
@@ -1856,21 +1961,9 @@
 
     function renderReportModal() {
       const yearInp = document.getElementById("reportYearInput");
-      const year = yearInp ? parseInt(yearInp.value, 10) : currentYear;
-      const monthSel = document.getElementById("reportMonthSelect");
-      const monthVal = monthSel ? monthSel.value : "ALL";
-      let monthsToAudit = [0];
-      if (monthVal === "ALL" || monthVal === "-1") monthsToAudit = [0,1,2,3,4,5,6,7,8,9,10,11];
-      else if (monthVal === "Q1") monthsToAudit = [0,1,2];
-      else if (monthVal === "Q2") monthsToAudit = [3,4,5];
-      else if (monthVal === "Q3") monthsToAudit = [6,7,8];
-      else if (monthVal === "Q4") monthsToAudit = [9,10,11];
-      else if (monthVal === "S1") monthsToAudit = [0,1,2,3,4,5];
-      else if (monthVal === "S2") monthsToAudit = [6,7,8,9,10,11];
-      else {
-        const parsed = parseInt(monthVal, 10);
-        monthsToAudit = !isNaN(parsed) ? [parsed] : [0];
-      }
+      const yearParsed = yearInp ? parseInt(yearInp.value, 10) : currentYear;
+      const year = !isNaN(yearParsed) ? yearParsed : currentYear;
+      const monthsToAudit = getSelectedReportMonths();
       const statusFilt = document.getElementById("reportStatusFilter");
       const statusVal = statusFilt ? statusFilt.value : "TODAS";
       const colabFilt = document.getElementById("reportColabFilter");
@@ -1905,7 +1998,7 @@
           });
         });
 
-        const isFullyDone = (doneTasks === totalTasks);
+        const isFullyDone = (totalTargetCells > 0 && doneTasks === totalTargetCells);
         if (isFullyDone) doneCompanies++;
         else if (andamentoTasks > 0 || doneTasks > 0) andamentoCompanies++;
         else pendingCompanies++;
@@ -1936,7 +2029,7 @@
             <td class="py-2.5 px-3 font-extrabold text-slate-800">${c.name}</td>
             <td class="py-2.5 px-3 text-slate-600">${c.tax || "SN Puro"}</td>
             <td class="py-2.5 px-3 font-bold text-blue-700">${c.colaborador || "—"}</td>
-            <td class="py-2.5 px-3 text-center font-bold">${doneTasks}/${totalTasks} (${pct}%)</td>
+            <td class="py-2.5 px-3 text-center font-bold">${doneTasks}/${totalTargetCells} (${pct}%)</td>
             <td class="py-2.5 px-3 text-center">${statusBadgeHtml}</td>
           </tr>
         `);
@@ -1978,7 +2071,7 @@
         const pct = Math.round((doneTasks / totalTasks) * 100);
         const statusTxt = doneTasks === totalTasks ? "CONCLUIDO (100%)" : doneTasks > 0 ? "EM ANDAMENTO" : "PENDENTE";
 
-        csvContent += `"${c.code}";"${c.name}";"${c.tax || 'SN Puro'}";"${c.colaborador || ''}";"${doneTasks}/${totalTasks}";"${pct}%";"${statusTxt}"\n`;
+        csvContent += `"${c.code}";"${c.name}";"${c.tax || 'SN Puro'}";"${c.colaborador || ''}";"${doneTasks}/${totalTargetCells}";"${pct}%";"${statusTxt}"\n`;
       });
 
       const encodedUri = encodeURI(csvContent);
@@ -2056,6 +2149,7 @@
       });
 
       tbody.innerHTML = html;
+      updateSelectedCompanyStats();
     }
 
     function openCellModal(taskIdx, monthIdx) {
@@ -2162,9 +2256,6 @@
     }
 
     function updateSelectedCompanyStats() {
-      const statSel = document.getElementById("statMonthSelect");
-      const selectedMonth = (statSel && statSel.value !== "" && !isNaN(parseInt(statSel.value, 10))) ? parseInt(statSel.value, 10) : 0;
-      
       if (!currentSelectedCode) {
         const d = document.getElementById("statDoneCount"); if (d) d.innerText = "0/21";
         const a = document.getElementById("statAndamentoCount"); if (a) a.innerText = "0/21";
@@ -2174,26 +2265,14 @@
         return;
       }
 
-      const yearData = getCompanyYearData(currentSelectedCode, currentYear);
-      let doneCount = 0;
-      let andamentoCount = 0;
-      let pendingCount = 0;
-      const totalTasks = closingTasks.length;
+      const stats = getCompanyCompletionStats(currentSelectedCode, currentYear);
 
-      closingTasks.forEach((_, taskIdx) => {
-        const cell = (yearData.tasks[taskIdx] && yearData.tasks[taskIdx][selectedMonth]) || { status: 'DASH' };
-        if (cell.status === 'REALIZADO' || cell.status === 'CONCLUIDO' || cell.status === 'OBSERVACAO' || cell.status === 'OBS') doneCount++;
-        else if (cell.status === 'ANDAMENTO' || cell.status === 'EM_ANDAMENTO') andamentoCount++;
-        else if (cell.status === 'PENDENTE') pendingCount++;
-      });
-
-      const d = document.getElementById("statDoneCount"); if (d) d.innerText = `${doneCount}/${totalTasks}`;
-      const a = document.getElementById("statAndamentoCount"); if (a) a.innerText = `${andamentoCount}/${totalTasks}`;
-      const p = document.getElementById("statPendingCount"); if (p) p.innerText = `${pendingCount}/${totalTasks}`;
+      const d = document.getElementById("statDoneCount"); if (d) d.innerText = `${stats.doneCount}/${stats.totalCells}`;
+      const a = document.getElementById("statAndamentoCount"); if (a) a.innerText = `${stats.andamentoCount}/${stats.totalCells}`;
+      const p = document.getElementById("statPendingCount"); if (p) p.innerText = `${stats.pendingCount}/${stats.totalCells}`;
       
-      const pct = totalTasks > 0 ? Math.round((doneCount / totalTasks) * 100) : 0;
-      const pb = document.getElementById("statProgressBar"); if (pb) pb.style.width = `${pct}%`;
-      const pt = document.getElementById("statProgressText"); if (pt) pt.innerText = `${pct}%`;
+      const pb = document.getElementById("statProgressBar"); if (pb) pb.style.width = `${stats.pct}%`;
+      const pt = document.getElementById("statProgressText"); if (pt) pt.innerText = `${stats.pct}%`;
     }
 
     function renderTasksModalList() {
@@ -2876,54 +2955,124 @@
       </div>
 
       <!-- FILTER CONTROLS BAR -->
-      <div class="p-3.5 bg-slate-50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Exercício (Ano):</label>
-          <input type="number" id="reportYearInput" value="2026" min="2020" max="2035"
-            class="w-full p-2 border border-slate-300 rounded-md font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+      <div class="p-3.5 bg-slate-50 border-b border-slate-200 space-y-3 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Exercício (Ano):</label>
+            <input type="number" id="reportYearInput" value="2026" min="2020" max="2035" onchange="renderReportModal()"
+              class="w-full p-2 border border-slate-300 rounded-md font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Mês de Referência (Atalhos):</label>
+            <select id="reportMonthSelect" onchange="syncReportMonthPreset()" class="w-full p-2 border border-slate-300 rounded-md font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+              <option value="ALL">📅 Acumulado Ano Completo (Jan a Dez)</option>
+              <option value="S1" selected>1º Semestre (Jan - Jun)</option>
+              <option value="S2">2º Semestre (Jul - Dez)</option>
+              <option value="Q1">1º Trimestre (Jan - Mar)</option>
+              <option value="Q2">2º Trimestre (Abr - Jun)</option>
+              <option value="Q3">3º Trimestre (Jul - Set)</option>
+              <option value="Q4">4º Trimestre (Out - Dez)</option>
+              <option value="0">Janeiro</option>
+              <option value="1">Fevereiro</option>
+              <option value="2">Março</option>
+              <option value="3">Abril</option>
+              <option value="4">Maio</option>
+              <option value="5">Junho</option>
+              <option value="6">Julho</option>
+              <option value="7">Agosto</option>
+              <option value="8">Setembro</option>
+              <option value="9">Outubro</option>
+              <option value="10">Novembro</option>
+              <option value="11">Dezembro</option>
+              <option value="CUSTOM">⚙️ Seleção Personalizada de Meses</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Filtrar por Situação:</label>
+            <select id="reportStatusFilter" onchange="renderReportModal()" class="w-full p-2 border border-slate-300 rounded-md font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+              <option value="TODAS">Todas as Empresas</option>
+              <option value="CONCLUIDAS">🟢 Apenas Concluídas (100%)</option>
+              <option value="PENDENTES">🔴 Apenas com Pendências</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Filtrar por Responsável:</label>
+            <select id="reportColabFilter" onchange="renderReportModal()" class="w-full p-2 border border-slate-300 rounded-md font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+              <option value="">Todos os Colaboradores</option>
+              <option value="Viviane">Viviane</option>
+              <option value="Lilian">Lilian</option>
+              <option value="Luziete">Luziete</option>
+              <option value="Aurea">Aurea</option>
+              <option value="Marcio">Marcio</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Mês de Referência:</label>
-          <select id="reportMonthSelect" class="w-full p-2 border border-slate-300 rounded-md font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
-            <option value="ALL">📅 Acumulado Ano Completo (Jan a Dez)</option>
-            <option value="Q1">1º Trimestre (Jan - Mar)</option>
-            <option value="Q2">2º Trimestre (Abr - Jun)</option>
-            <option value="Q3">3º Trimestre (Jul - Set)</option>
-            <option value="Q4">4º Trimestre (Out - Dez)</option>
-            <option value="S1">1º Semestre (Jan - Jun)</option>
-            <option value="S2">2º Semestre (Jul - Dez)</option>
-            <option value="0">Janeiro</option>
-            <option value="1">Fevereiro</option>
-            <option value="2">Março</option>
-            <option value="3">Abril</option>
-            <option value="4">Maio</option>
-            <option value="5">Junho</option>
-            <option value="6">Julho</option>
-            <option value="7">Agosto</option>
-            <option value="8">Setembro</option>
-            <option value="9">Outubro</option>
-            <option value="10">Novembro</option>
-            <option value="11">Dezembro</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Filtrar por Situação:</label>
-          <select id="reportStatusFilter" class="w-full p-2 border border-slate-300 rounded-md font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
-            <option value="TODAS">Todas as Empresas</option>
-            <option value="CONCLUIDAS">🟢 Apenas Concluídas (100%)</option>
-            <option value="PENDENTES">🔴 Apenas com Pendências</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Filtrar por Responsável:</label>
-          <select id="reportColabFilter" class="w-full p-2 border border-slate-300 rounded-md font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
-            <option value="">Todos os Colaboradores</option>
-            <option value="Viviane">Viviane</option>
-            <option value="Lilian">Lilian</option>
-            <option value="Luziete">Luziete</option>
-            <option value="Aurea">Aurea</option>
-            <option value="Marcio">Marcio</option>
-          </select>
+
+        <!-- TICKABLE MONTH CHECKBOXES SELECTION PANEL -->
+        <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs space-y-2">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-calendar-days text-blue-600 text-sm"></i>
+              <span class="font-extrabold text-slate-800 text-xs">Selecione os Meses para Auditar no Relatório (Marque / Desmarque):</span>
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button type="button" onclick="setReportMonthsPreset('ALL')" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-[11px] rounded-md border border-blue-200 transition cursor-pointer">📅 Todos (12M)</button>
+              <button type="button" onclick="setReportMonthsPreset('S1')" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-extrabold text-[11px] rounded-md border border-emerald-200 transition cursor-pointer">🟢 1º Semestre (Jan-Jun)</button>
+              <button type="button" onclick="setReportMonthsPreset('S2')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-extrabold text-[11px] rounded-md border border-indigo-200 transition cursor-pointer">🔵 2º Semestre (Jul-Dez)</button>
+              <button type="button" onclick="clearReportMonths()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-md border border-slate-300 transition cursor-pointer">❌ Limpar</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-1.5 text-xs font-bold">
+            <label class="flex items-center justify-center gap-1.5 p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-md cursor-pointer transition select-none text-slate-700">
+              <input type="checkbox" value="0" class="report-month-checkbox w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" onchange="onReportMonthCheckboxChange()">
+              <span>JAN</span>
+            </label>
+            <label class="flex items-center justify-center gap-1.5 p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-md cursor-pointer transition select-none text-slate-700">
+              <input type="checkbox" value="1" class="report-month-checkbox w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" onchange="onReportMonthCheckboxChange()">
+              <span>FEV</span>
+            </label>
+            <label class="flex items-center justify-center gap-1.5 p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-md cursor-pointer transition select-none text-slate-700">
+              <input type="checkbox" value="2" class="report-month-checkbox w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" onchange="onReportMonthCheckboxChange()">
+              <span>MAR</span>
+            </label>
+            <label class="flex items-center justify-center gap-1.5 p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-md cursor-pointer transition select-none text-slate-700">
+              <input type="checkbox" value="3" class="report-month-checkbox w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" onchange="onReportMonthCheckboxChange()">
+              <span>ABR</span>
+            </label>
+            <label class="flex items-center justify-center gap-1.5 p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-md cursor-pointer transition select-none text-slate-700">
+              <input type="checkbox" value="4" class="report-month-checkbox w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" onchange="onReportMonthCheckboxChange()">
+              <span>MAI</span>
+            </label>
+            <label class="flex items-center justify-center gap-1.5 p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-md cursor-pointer transition select-none text-slate-700">
+              <input type="checkbox" value="5" class="report-month-checkbox w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" onchange="onReportMonthCheckboxChange()">
+              <span>JUN</span>
+            </label>
+            <label class="flex items-center justify-center gap-1.5 p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-md cursor-pointer transition select-none text-slate-700">
+              <input type="checkbox" value="6" class="report-month-checkbox w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" onchange="onReportMonthCheckboxChange()">
+              <span>JUL</span>
+            </label>
+            <label class="flex items-center justify-center gap-1.5 p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-md cursor-pointer transition select-none text-slate-700">
+              <input type="checkbox" value="7" class="report-month-checkbox w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" onchange="onReportMonthCheckboxChange()">
+              <span>AGO</span>
+            </label>
+            <label class="flex items-center justify-center gap-1.5 p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-md cursor-pointer transition select-none text-slate-700">
+              <input type="checkbox" value="8" class="report-month-checkbox w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" onchange="onReportMonthCheckboxChange()">
+              <span>SET</span>
+            </label>
+            <label class="flex items-center justify-center gap-1.5 p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-md cursor-pointer transition select-none text-slate-700">
+              <input type="checkbox" value="9" class="report-month-checkbox w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" onchange="onReportMonthCheckboxChange()">
+              <span>OUT</span>
+            </label>
+            <label class="flex items-center justify-center gap-1.5 p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-md cursor-pointer transition select-none text-slate-700">
+              <input type="checkbox" value="10" class="report-month-checkbox w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" onchange="onReportMonthCheckboxChange()">
+              <span>NOV</span>
+            </label>
+            <label class="flex items-center justify-center gap-1.5 p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-md cursor-pointer transition select-none text-slate-700">
+              <input type="checkbox" value="11" class="report-month-checkbox w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" onchange="onReportMonthCheckboxChange()">
+              <span>DEZ</span>
+            </label>
+          </div>
         </div>
       </div>
 

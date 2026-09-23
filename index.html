@@ -1170,19 +1170,19 @@
     function loadStateFromStorage() {
       let loaded = null;
       try {
-        const storedCompanies = localStorage.getItem("rbm_closing_companies_v8") || localStorage.getItem("rbm_closing_companies_v7");
+        const storedCompanies = localStorage.getItem("rbm_closing_companies_v9");
         if (storedCompanies) {
           const parsed = JSON.parse(storedCompanies);
           let parsedArr = Array.isArray(parsed) ? parsed : (typeof parsed === "object" && parsed !== null ? Object.values(parsed) : null);
           if (parsedArr && Array.isArray(parsedArr)) {
-            loaded = parsedArr.filter(c => c && typeof c === 'object' && c.code);
+            loaded = parsedArr.filter(c => c && typeof c === 'object' && c.code && c.name);
           }
         }
       } catch(e) {
         loaded = null;
       }
 
-      if (!loaded || !Array.isArray(loaded) || loaded.length === 0) {
+      if (!loaded || !Array.isArray(loaded) || loaded.length < 10) {
         loaded = JSON.parse(JSON.stringify(INITIAL_COMPANIES));
       }
 
@@ -1210,12 +1210,12 @@
 
       companies = loaded;
 
-      const storedClosing = localStorage.getItem("rbm_closing_data_v8") || localStorage.getItem("rbm_closing_data_v7");
+      const storedClosing = localStorage.getItem("rbm_closing_data_v9") || localStorage.getItem("rbm_closing_data_v8");
       if (storedClosing) {
         try { closingData = JSON.parse(storedClosing); } catch(e) { closingData = {}; }
       }
 
-      const storedTasks = localStorage.getItem("rbm_closing_tasks_v8") || localStorage.getItem("rbm_closing_tasks_v7");
+      const storedTasks = localStorage.getItem("rbm_closing_tasks_v9") || localStorage.getItem("rbm_closing_tasks_v8");
       if (storedTasks) {
         try {
           const parsedT = JSON.parse(storedTasks);
@@ -1225,7 +1225,7 @@
         } catch(e) { closingTasks = [...DEFAULT_CLOSING_TASKS]; }
       }
 
-      const storedHistory = localStorage.getItem("rbm_closing_history_v8") || localStorage.getItem("rbm_closing_history_v7");
+      const storedHistory = localStorage.getItem("rbm_closing_history_v9") || localStorage.getItem("rbm_closing_history_v8");
       if (storedHistory) {
         try {
           const parsedH = JSON.parse(storedHistory);
@@ -1447,10 +1447,10 @@
                 else if (typeof histRaw === 'object' && histRaw !== null) historyLog = Object.values(histRaw);
               }
 
-              localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
-              localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
-              localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
-              localStorage.setItem("rbm_closing_history_v8", JSON.stringify(historyLog));
+              localStorage.setItem("rbm_closing_companies_v9", JSON.stringify(companies));
+              localStorage.setItem("rbm_closing_data_v9", JSON.stringify(closingData));
+              localStorage.setItem("rbm_closing_tasks_v9", JSON.stringify(closingTasks));
+              localStorage.setItem("rbm_closing_history_v9", JSON.stringify(historyLog));
 
               renderCompanyList();
               renderRoutineTable();
@@ -1511,10 +1511,10 @@
     }
 
     function saveStateToStorage() {
-      localStorage.setItem("rbm_closing_companies_v8", JSON.stringify(companies));
-      localStorage.setItem("rbm_closing_data_v8", JSON.stringify(closingData));
-      localStorage.setItem("rbm_closing_tasks_v8", JSON.stringify(closingTasks));
-      localStorage.setItem("rbm_closing_history_v8", JSON.stringify(historyLog));
+      localStorage.setItem("rbm_closing_companies_v9", JSON.stringify(companies));
+      localStorage.setItem("rbm_closing_data_v9", JSON.stringify(closingData));
+      localStorage.setItem("rbm_closing_tasks_v9", JSON.stringify(closingTasks));
+      localStorage.setItem("rbm_closing_history_v9", JSON.stringify(historyLog));
       syncToCloud();
       updateSelectedCompanyStats();
       updateLastCompanyActionDisplay();

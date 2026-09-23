@@ -193,7 +193,7 @@
   <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-5">
     
     <!-- LEFT SIDEBAR: COMPANY LIST & FILTERS -->
-    <aside class="lg:col-span-4 xl:col-span-3 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-[calc(100vh-160px)] sticky top-24 no-print">
+    <aside class="lg:col-span-4 xl:col-span-3 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-[calc(100vh-160px)] sticky top-24 no-print" style="min-height: 500px; height: calc(100vh - 160px); display: flex; flex-direction: column;">
       
       <!-- SIDEBAR FILTERS HEADER -->
       <div class="p-3.5 bg-slate-50 border-b border-slate-200 space-y-2.5">
@@ -258,7 +258,7 @@
       </div>
 
       <!-- COMPANY SCROLLABLE LIST -->
-      <div id="companyList" class="flex-1 overflow-y-auto divide-y divide-slate-100">
+      <div id="companyList" class="flex-1 overflow-y-auto divide-y divide-slate-100" style="flex: 1 1 auto; min-height: 380px; max-height: calc(100vh - 220px); overflow-y: auto;">
         <!-- Javascript populated items -->
       </div>
 
@@ -2335,6 +2335,9 @@
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-1">Digite a Senha do Usuário:</label>
           <div class="relative">
+            <!-- Decoy fields to block browser password suggestion popups -->
+            <input type="text" style="display:none!important;" name="fakeusernameremembered" aria-hidden="true" tabindex="-1">
+            <input type="password" style="display:none!important;" name="fakepasswordremembered" aria-hidden="true" tabindex="-1">
             <input type="password" id="inputAuthPassword" autocomplete="new-password" required placeholder="Digite a senha..."
               class="w-full p-2.5 pr-10 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
             <button type="button" id="btnTogglePasswordVisibility" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600">
